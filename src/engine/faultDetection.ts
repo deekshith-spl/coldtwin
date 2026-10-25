@@ -15,7 +15,7 @@
 // owner understands why the alert fired.
 // ============================================================
 
-import type { Chamber, Reading, ThermalPrediction, FaultAlert } from '@/types';
+import type { Chamber, Reading, ThermalPrediction, FaultAlert, AlertThresholds } from '@/types';
 
 // EWMA smoothing factor (0 = no smoothing, 1 = no memory)
 const EWMA_ALPHA = 0.3;
@@ -74,10 +74,11 @@ interface FaultSignals {
   actions: string[];
 }
 
-function analyseSignals(
+export function analyseSignals(
   chamber: Chamber,
   readings: Reading[],
-  predictions: ThermalPrediction[]
+  predictions: ThermalPrediction[],
+  alertThresholds?: AlertThresholds
 ): FaultSignals {
   const residuals = readings.map((r, i) => predictions[i]?.residual ?? 0);
   const smoothed = computeEwma(residuals, EWMA_ALPHA);
@@ -89,12 +90,13 @@ function analyseSignals(
   const recentSmoothed = smoothed.slice(-12);
   const maxSmoothed = Math.max(...recentSmoothed.map(Math.abs));
   let residualScore = 0;
+  const tempDevLimit = alertThresholds?.tempDeviationAlert ?? RESIDUAL_ALERT_C;
 
-  if (maxSmoothed > RESIDUAL_ALERT_C) {
-    residualScore = Math.min(100, (maxSmoothed / RESIDUAL_ALERT_C) * 50);
+  if (maxSmoothed > tempDevLimit) {
+    residualScore = Math.min(100, (maxSmoothed / tempDevLimit) * 50);
     const sign = smoothed[smoothed.length - 1] > 0 ? 'higher' : 'lower';
     reasons.push(
-      `Temperature is running ${maxSmoothed.toFixed(1)}°C ${sign} than the twin expects — ` +
+      `Temperature is running ${maxSmoothed.toFixed(1)}°C ${sign} than the twin expects (threshold: ${tempDevLimit}°C) — ` +
       `possible insulation or coil issue.`
     );
     actions.push('Inspect door seals, evaporator coils, and condenser fins.');
@@ -135,16 +137,18 @@ function analyseSignals(
     actions.push('Inspect door seal gasket and check compressor capacity.');
   }
 
-  // ── Signal 3: Compressor duty cycle ──────────────────────
+  // ── Signal 3: Compressor duty cycle (use recent window: last 24-48 hours) ──
   let dutyCycleScore = 0;
-  const totalHours = readings.reduce((s, r) => s + (r.intervalHours || 1), 0);
-  const runHours   = readings.reduce((s, r) => s + r.compressorRunHours, 0);
+  // Focus on the most recent 48 hours to prevent historical normal readings from diluting recent faults
+  const recentDutyReadings = readings.slice(-48);
+  const totalHours = recentDutyReadings.reduce((s, r) => s + (r.intervalHours || 1), 0);
+  const runHours   = recentDutyReadings.reduce((s, r) => s + r.compressorRunHours, 0);
   const dutyCycle  = totalHours > 0 ? runHours / totalHours : 0;
 
   if (dutyCycle > DUTY_MAX) {
     dutyCycleScore = Math.min(100, ((dutyCycle - DUTY_MAX) / (1 - DUTY_MAX)) * 100);
     reasons.push(
-      `Compressor duty cycle is ${(dutyCycle * 100).toFixed(0)}% — ` +
+      `Compressor duty cycle is ${(dutyCycle * 100).toFixed(0)}% in recent window — ` +
       `above the healthy range of ${DUTY_MAX * 100}%. ` +
       `The refrigeration system is working harder than normal.`
     );
@@ -152,7 +156,7 @@ function analyseSignals(
   } else if (dutyCycle < DUTY_MIN && totalHours > 12) {
     dutyCycleScore = Math.min(50, ((DUTY_MIN - dutyCycle) / DUTY_MIN) * 50);
     reasons.push(
-      `Compressor duty cycle is ${(dutyCycle * 100).toFixed(0)}% — ` +
+      `Compressor duty cycle is ${(dutyCycle * 100).toFixed(0)}% in recent window — ` +
       `below normal. May indicate a faulty sensor or compressor not starting.`
     );
     actions.push('Verify compressor is starting normally and check run-hour sensors.');
@@ -173,7 +177,8 @@ function analyseSignals(
 export function computeFaultAlert(
   chamber: Chamber,
   readings: Reading[],
-  predictions: ThermalPrediction[]
+  predictions: ThermalPrediction[],
+  alertThresholds?: AlertThresholds
 ): FaultAlert {
   if (readings.length < 3) {
     return {
@@ -187,7 +192,7 @@ export function computeFaultAlert(
     };
   }
 
-  const signals = analyseSignals(chamber, readings, predictions);
+  const signals = analyseSignals(chamber, readings, predictions, alertThresholds);
 
   const riskScore = Math.min(
     100,
@@ -198,7 +203,9 @@ export function computeFaultAlert(
     )
   );
 
-  const level = riskScore >= 60 ? 'red' : riskScore >= 30 ? 'amber' : 'green';
+  const riskAlert = alertThresholds?.riskScoreAlert ?? 60;
+  const warningAlert = Math.round(riskAlert / 2);
+  const level = riskScore >= riskAlert ? 'red' : riskScore >= warningAlert ? 'amber' : 'green';
 
   const reason = signals.reasons.length > 0
     ? signals.reasons[0]

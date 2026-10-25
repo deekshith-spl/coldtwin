@@ -56,7 +56,16 @@ export function FixBeforeBreaksCard({ alerts }: FixBeforeBreaksCardProps) {
                   <div className="flex items-start gap-2 flex-1 min-w-0">
                     {levelIcon(alert.level)}
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-gray-900">{alert.chamberId}</div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <div className="text-sm font-semibold text-gray-900">{alert.chamberId}</div>
+                        <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border ${
+                          alert.level === 'red' ? 'bg-red-100 text-red-800 border-red-200' :
+                          alert.level === 'amber' ? 'bg-amber-100 text-amber-800 border-amber-200' :
+                          'bg-green-100 text-green-800 border-green-200'
+                        }`}>
+                          {alert.level === 'red' ? 'Critical Risk' : alert.level === 'amber' ? 'Warning' : 'Normal'}
+                        </span>
+                      </div>
                       <p className="text-xs text-gray-600 mt-0.5 leading-relaxed line-clamp-2">
                         {alert.reason}
                       </p>
@@ -70,8 +79,9 @@ export function FixBeforeBreaksCard({ alerts }: FixBeforeBreaksCardProps) {
                 </div>
 
                 <button
+                  type="button"
                   onClick={() => setExpandedAlert(isExpanded ? null : alert.chamberId)}
-                  className="mt-2 flex items-center gap-1 text-xs text-cold-600 hover:text-cold-800"
+                  className="mt-2 flex items-center gap-1 text-xs text-cold-600 hover:text-cold-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-cold-600 rounded px-1 py-0.5"
                 >
                   <HelpCircle size={12} />
                   <span>{T.why}</span>

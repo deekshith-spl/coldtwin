@@ -19,10 +19,15 @@ const DEFAULT_SETTINGS: AppSettings = {
   language: 'en',
 };
 
+export type Theme = 'light' | 'dark';
+
 export interface StoreState {
   // Role & view
   role: Role;
   currentFarmerId: string | null;
+
+  // Theme
+  theme: Theme;
 
   // Data
   isDemoData: boolean;
@@ -36,6 +41,10 @@ export interface StoreState {
 
   // Active fault simulation (affects displayed readings)
   activeSimulation: FaultInjection | null;
+  preSimulationReadings: Reading[] | null;
+
+  // Walkthrough tour state
+  isTourOpen: boolean;
 
   // Actions
   setRole: (role: Role) => void;
@@ -48,15 +57,51 @@ export interface StoreState {
   updateProduceMeta: (meta: ProduceMeta[]) => void;
   simulateFault: (chamberId: string, faultType: FaultType) => void;
   clearSimulation: () => void;
+  openTour: () => void;
+  closeTour: () => void;
+  setTheme: (theme: Theme) => void;
+  toggleTheme: () => void;
 }
 
 const initialDemo = generateDemoData();
+
+function getInitialTheme(): Theme {
+  try {
+    const saved = localStorage.getItem('coldtwin_theme');
+    if (saved === 'dark' || saved === 'light') return saved;
+    if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      return 'dark';
+    }
+  } catch {
+    // ignore
+  }
+  return 'light';
+}
+
+function applyTheme(theme: Theme) {
+  if (typeof document !== 'undefined') {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }
+  try {
+    localStorage.setItem('coldtwin_theme', theme);
+  } catch {
+    // ignore
+  }
+}
+
+const initialTheme = getInitialTheme();
+applyTheme(initialTheme);
 
 export const useStore = create<StoreState>()(
   persist(
     (set, get) => ({
       role: 'owner',
       currentFarmerId: initialDemo.farmers[0]?.id ?? null,
+      theme: initialTheme,
       isDemoData: true,
       chambers: initialDemo.chambers,
       readings: initialDemo.readings,
@@ -66,6 +111,8 @@ export const useStore = create<StoreState>()(
       settings: DEFAULT_SETTINGS,
       simulatedFaults: [],
       activeSimulation: null,
+      preSimulationReadings: null,
+      isTourOpen: false,
 
       setRole: (role) => set({ role }),
       setCurrentFarmer: (id) => set({ currentFarmerId: id }),
@@ -80,6 +127,7 @@ export const useStore = create<StoreState>()(
           farmers: demo.farmers,
           produceMeta: demo.produceMeta,
           activeSimulation: null,
+          preSimulationReadings: null,
         });
       },
 
@@ -90,6 +138,7 @@ export const useStore = create<StoreState>()(
           lots: [],
           farmers: [],
           activeSimulation: null,
+          preSimulationReadings: null,
           simulatedFaults: [],
         });
       },
@@ -112,6 +161,9 @@ export const useStore = create<StoreState>()(
 
       simulateFault: (chamberId, faultType) => {
         const state = get();
+        // Preserve exact snapshot before any simulation is injected
+        const originalReadings = state.preSimulationReadings ?? [...state.readings];
+
         const chamberReadings = state.readings
           .filter(r => r.chamberId === chamberId)
           .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
@@ -137,17 +189,47 @@ export const useStore = create<StoreState>()(
         set({
           readings: [...otherReadings, ...patched],
           activeSimulation: injection,
+          preSimulationReadings: originalReadings,
           simulatedFaults: [...state.simulatedFaults, injection],
         });
       },
 
       clearSimulation: () => {
-        // Reload demo data to clear injected faults
-        const demo = generateDemoData();
-        set(state => ({
-          readings: state.isDemoData ? demo.readings : state.readings,
-          activeSimulation: null,
-        }));
+        const state = get();
+        // Restore the exact same data that existed prior to simulation without regenerating random data
+        if (state.preSimulationReadings) {
+          set({
+            readings: state.preSimulationReadings,
+            preSimulationReadings: null,
+            activeSimulation: null,
+          });
+        } else {
+          set({
+            activeSimulation: null,
+          });
+        }
+      },
+
+      openTour: () => set({ isTourOpen: true }),
+
+      closeTour: () => {
+        try {
+          localStorage.setItem('coldtwin_walkthrough_seen', 'true');
+        } catch {
+          // ignore localStorage access errors
+        }
+        set({ isTourOpen: false });
+      },
+
+      setTheme: (theme) => {
+        applyTheme(theme);
+        set({ theme });
+      },
+
+      toggleTheme: () => {
+        const next = get().theme === 'dark' ? 'light' : 'dark';
+        applyTheme(next);
+        set({ theme: next });
       },
     }),
     {

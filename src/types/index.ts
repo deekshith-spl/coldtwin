@@ -18,6 +18,7 @@ export interface ProduceMeta {
   baseShelfLifeDays: number;
   q10Factor: number;        // rate multiplier per 10°C above ideal
   notes: string;
+  minSafeTempC?: number;    // optional safe minimum temperature (°C); temperatures below cause chilling injury
 }
 
 // ── Chamber ──────────────────────────────────────────────────

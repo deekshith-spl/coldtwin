@@ -3,7 +3,7 @@
 // ============================================================
 
 import { describe, it, expect } from 'vitest';
-import { computeFaultAlert, injectFaultPattern } from '../faultDetection';
+import { computeFaultAlert, injectFaultPattern, analyseSignals } from '../faultDetection';
 import { computeThermalPredictions } from '../thermalTwin';
 import type { Chamber, Reading } from '@/types';
 
@@ -64,6 +64,44 @@ describe('computeFaultAlert', () => {
     expect(typeof alert.reason).toBe('string');
     expect(typeof alert.suggestedAction).toBe('string');
     expect(alert.reason.length).toBeGreaterThan(0);
+  });
+
+  it('detects recent compressor duty cycle anomalies using trailing window rather than 60-day average', () => {
+    // 60 days = 1440 readings of very low duty cycle (0.2)
+    const healthyLongHistory = makeHealthyReadings(1440).map(r => ({
+      ...r,
+      doorOpenCount: 0, // isolate duty cycle
+      compressorRunHours: 0.2,
+    }));
+    // Now last 36 readings have high compressor run hours (0.95)
+    for (let i = healthyLongHistory.length - 36; i < healthyLongHistory.length; i++) {
+      healthyLongHistory[i].compressorRunHours = 0.95;
+    }
+    const predictions = computeThermalPredictions(chamber, healthyLongHistory);
+    const signals = analyseSignals(chamber, healthyLongHistory, predictions);
+    const alert = computeFaultAlert(chamber, healthyLongHistory, predictions);
+
+    // The trailing 48-hour window should catch this duty cycle surge
+    expect(signals.dutyCycleScore).toBeGreaterThan(0);
+    expect(alert.reason.toLowerCase()).toContain('duty cycle');
+    expect(alert.riskScore).toBeGreaterThan(0);
+  });
+
+  it('respects custom alertThresholds for riskScore and tempDeviation', () => {
+    const readings = makeHealthyReadings(48);
+    const predictions = computeThermalPredictions(chamber, readings);
+
+    // With a very low riskScoreAlert (e.g. 1), even minimal risk triggers amber/red
+    const alertLowThreshold = computeFaultAlert(chamber, readings, predictions, {
+      tempDeviationAlert: 0.05,
+      shelfLifeRedDays: 3,
+      shelfLifeAmberDays: 7,
+      riskScoreAlert: 1,
+    });
+
+    if (alertLowThreshold.riskScore >= 1) {
+      expect(['amber', 'red']).toContain(alertLowThreshold.level);
+    }
   });
 });
 

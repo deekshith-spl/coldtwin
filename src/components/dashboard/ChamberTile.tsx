@@ -16,11 +16,11 @@ function getChamberStatus(alert?: FaultAlert): ChamberStatus {
   return 'normal';
 }
 
-const STATUS_STYLES: Record<ChamberStatus, { border: string; badge: string; icon: JSX.Element }> = {
-  normal:  { border: 'border-green-200',  badge: 'bg-green-100 text-green-700', icon: <CheckCircle size={13} className="text-green-600" /> },
-  warning: { border: 'border-amber-200',  badge: 'bg-amber-100 text-amber-700', icon: <AlertCircle size={13} className="text-amber-500" /> },
-  fault:   { border: 'border-red-300',    badge: 'bg-red-100 text-red-700',     icon: <AlertTriangle size={13} className="text-red-500" /> },
-  unknown: { border: 'border-gray-200',   badge: 'bg-gray-100 text-gray-500',   icon: <CheckCircle size={13} className="text-gray-400" /> },
+const STATUS_STYLES: Record<ChamberStatus, { border: string; badge: string; icon: JSX.Element; label: string }> = {
+  normal:  { border: 'border-green-200 dark:border-emerald-800/80',  badge: 'bg-green-100 text-green-800 dark:bg-emerald-950/70 dark:text-emerald-300', icon: <CheckCircle size={13} className="text-green-600 dark:text-emerald-400 shrink-0" aria-hidden="true" />, label: 'Normal' },
+  warning: { border: 'border-amber-200 dark:border-amber-800/80',  badge: 'bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300', icon: <AlertCircle size={13} className="text-amber-500 dark:text-amber-400 shrink-0" aria-hidden="true" />, label: 'Warning' },
+  fault:   { border: 'border-red-300 dark:border-red-800/80',    badge: 'bg-red-100 text-red-800 dark:bg-red-950/70 dark:text-red-300',     icon: <AlertTriangle size={13} className="text-red-500 dark:text-red-400 shrink-0" aria-hidden="true" />, label: 'Fault Alert' },
+  unknown: { border: 'border-gray-200 dark:border-gray-700',   badge: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',   icon: <CheckCircle size={13} className="text-gray-400 shrink-0" aria-hidden="true" />, label: 'Unknown' },
 };
 
 export function ChamberTile({ chamber, recentReadings, alert, onClick }: ChamberTileProps) {
@@ -34,29 +34,30 @@ export function ChamberTile({ chamber, recentReadings, alert, onClick }: Chamber
   return (
     <button
       onClick={onClick}
-      className={`card flex flex-col gap-3 text-left hover:shadow-md transition-all cursor-pointer border ${styles.border}`}
+      aria-label={`View ${chamber.name} digital twin details, status ${styles.label}`}
+      className={`card flex flex-col gap-3 text-left hover:shadow-md transition-all cursor-pointer border ${styles.border} focus:outline-none focus-visible:ring-2 focus-visible:ring-cold-600 dark:focus-visible:ring-cold-400 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900`}
     >
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="text-sm font-semibold text-gray-800 leading-tight">{chamber.name}</div>
-        <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${styles.badge}`}>
+        <div className="text-sm font-semibold text-gray-800 dark:text-gray-100 leading-tight">{chamber.name}</div>
+        <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${styles.badge}`}>
           {styles.icon}
-          <span className="capitalize">{status}</span>
+          <span>{styles.label}</span>
         </div>
       </div>
 
       {/* Temperature & Humidity */}
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-1.5">
-          <Thermometer size={16} className="text-cold-500" />
-          <span className="text-xl font-bold text-gray-900">
+          <Thermometer size={16} className="text-cold-500 dark:text-cold-400" aria-hidden="true" />
+          <span className="text-xl font-bold text-gray-900 dark:text-white">
             {last ? `${last.tempC.toFixed(1)}°C` : '—'}
           </span>
-          <span className="text-xs text-gray-400">(target {chamber.targetTempC}°C)</span>
+          <span className="text-xs text-gray-400 dark:text-gray-400">(target {chamber.targetTempC}°C)</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <Droplets size={14} className="text-blue-400" />
-          <span className="text-sm text-gray-600">{last ? `${last.humidity.toFixed(0)}%` : '—'}</span>
+          <Droplets size={14} className="text-blue-400 dark:text-blue-300" aria-hidden="true" />
+          <span className="text-sm text-gray-600 dark:text-gray-300">{last ? `${last.humidity.toFixed(0)}%` : '—'}</span>
         </div>
       </div>
 
@@ -73,16 +74,28 @@ export function ChamberTile({ chamber, recentReadings, alert, onClick }: Chamber
             </LineChart>
           </ResponsiveContainer>
         ) : (
-          <div className="text-xs text-gray-300 flex items-center h-full">No data</div>
+          <div className="text-xs text-gray-400 dark:text-gray-500 flex items-center h-full">No data</div>
         )}
       </div>
 
       {/* Risk score */}
       {alert && (
-        <div className="text-xs text-gray-500">
-          Risk score: <span className={`font-semibold ${alert.riskScore >= 60 ? 'text-red-600' : alert.riskScore >= 30 ? 'text-amber-600' : 'text-green-600'}`}>
-            {alert.riskScore}
-          </span>/100
+        <div className="text-xs text-gray-600 dark:text-gray-400 flex items-center justify-between pt-1 border-t border-gray-100 dark:border-gray-800">
+          <span>Fault Risk:</span>
+          <span className={`font-semibold inline-flex items-center gap-1 ${
+            alert.riskScore >= 60 ? 'text-red-600 dark:text-red-400' : alert.riskScore >= 30 ? 'text-amber-600 dark:text-amber-400' : 'text-green-600 dark:text-emerald-400'
+          }`}>
+            {alert.riskScore >= 60 ? (
+              <AlertTriangle size={13} aria-hidden="true" />
+            ) : alert.riskScore >= 30 ? (
+              <AlertCircle size={13} aria-hidden="true" />
+            ) : (
+              <CheckCircle size={13} aria-hidden="true" />
+            )}
+            <span>
+              {alert.riskScore}/100 ({alert.riskScore >= 60 ? 'High' : alert.riskScore >= 30 ? 'Medium' : 'Low'})
+            </span>
+          </span>
         </div>
       )}
     </button>

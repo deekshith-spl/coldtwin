@@ -64,6 +64,25 @@ describe('computeDailyConsumptionRate', () => {
     const rate = computeDailyConsumptionRate(-2, 90, potatoMeta);
     expect(rate).toBeGreaterThan(0);
   });
+
+  it('rate penalises temperatures below minSafeTempC (chilling injury)', () => {
+    const chilliMeta: ProduceMeta = {
+      produce: 'chilli',
+      idealTempC: 8,
+      minSafeTempC: 7,
+      idealHumidity: 90,
+      baseShelfLifeDays: 21,
+      q10Factor: 2.0,
+      notes: '',
+    };
+
+    // At ideal temp (8°C) vs chilling temp (4°C, which is 3°C below minSafeTempC 7°C)
+    const idealRate = computeDailyConsumptionRate(8, 90, chilliMeta);
+    const chillingRate = computeDailyConsumptionRate(4, 90, chilliMeta);
+
+    // Chilling injury should accelerate quality degradation (consumption rate > ideal)
+    expect(chillingRate).toBeGreaterThan(idealRate);
+  });
 });
 
 describe('computeShelfLifeEstimate', () => {
@@ -108,5 +127,36 @@ describe('computeShelfLifeEstimate', () => {
     const est = computeShelfLifeEstimate(baseLot, readings, potatoMeta);
     expect(est.lowDays).toBeLessThanOrEqual(est.remainingDays);
     expect(est.remainingDays).toBeLessThanOrEqual(est.highDays);
+  });
+
+  it('detects chilling injury in explanation when temp is below minSafeTempC', () => {
+    const chilliMeta: ProduceMeta = {
+      produce: 'chilli',
+      idealTempC: 8,
+      minSafeTempC: 7,
+      idealHumidity: 90,
+      baseShelfLifeDays: 21,
+      q10Factor: 2.0,
+      notes: '',
+    };
+    const chilliLot: Lot = {
+      ...baseLot,
+      produce: 'chilli',
+      arrivalDate: baseLot.arrivalDate,
+    };
+    const coldReadings = makeReadings(3, 10); // 3°C is well below safe min 7°C
+    const est = computeShelfLifeEstimate(chilliLot, coldReadings, chilliMeta);
+    expect(est.explanation.toLowerCase()).toContain('safe minimum');
+  });
+
+  it('uses custom alertThresholds for urgency classification', () => {
+    const readings = makeReadings(4, 10);
+    const est = computeShelfLifeEstimate(baseLot, readings, potatoMeta, {
+      tempDeviationAlert: 1.5,
+      shelfLifeRedDays: 90, // set high so this lot becomes red
+      shelfLifeAmberDays: 100,
+      riskScoreAlert: 60,
+    });
+    expect(est.urgency).toBe('red');
   });
 });

@@ -78,10 +78,11 @@ export function SellFirstCard({ rankedLots, limit = 8 }: SellFirstCardProps) {
 
                 {/* Why button + expansion */}
                 <button
+                  type="button"
                   onClick={() => setExpandedLot(isExpanded ? null : item.lot.id)}
-                  className="mt-1.5 flex items-center gap-1 text-xs text-cold-600 hover:text-cold-800"
+                  className="mt-1.5 flex items-center gap-1 text-xs text-cold-600 hover:text-cold-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-cold-600 rounded px-1 py-0.5"
                 >
-                  <HelpCircle size={12} />
+                  <HelpCircle size={12} aria-hidden="true" />
                   <span>{T.why}</span>
                 </button>
                 {isExpanded && (

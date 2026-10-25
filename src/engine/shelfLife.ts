@@ -21,7 +21,7 @@
 // and many other factors not captured here.
 // ============================================================
 
-import type { Lot, Reading, ProduceMeta, ShelfLifeEstimate } from '@/types';
+import type { Lot, Reading, ProduceMeta, ShelfLifeEstimate, AlertThresholds } from '@/types';
 
 /**
  * humidityPenalty
@@ -50,7 +50,16 @@ export function computeDailyConsumptionRate(
   const tempDelta = Math.max(0, avgTempC - meta.idealTempC);
   const q10Rate   = Math.pow(meta.q10Factor, tempDelta / 10);
   const humRate   = humidityPenalty(avgHumidity, meta.idealHumidity);
-  return baseRate * q10Rate * humRate;
+
+  // Chilling injury penalty: penalise temperatures below safe minimum
+  let chillingPenalty = 1.0;
+  if (meta.minSafeTempC !== undefined && avgTempC < meta.minSafeTempC) {
+    const chillingDelta = meta.minSafeTempC - avgTempC;
+    // Each degree below safe minimum adds a penalty reflecting chilling injury
+    chillingPenalty = 1 + chillingDelta * 0.25;
+  }
+
+  return baseRate * q10Rate * humRate * chillingPenalty;
 }
 
 /**
@@ -68,7 +77,8 @@ export function computeDailyConsumptionRate(
 export function computeShelfLifeEstimate(
   lot: Lot,
   readings: Reading[],
-  meta: ProduceMeta
+  meta: ProduceMeta,
+  alertThresholds?: AlertThresholds
 ): ShelfLifeEstimate {
   const arrivalMs = new Date(lot.arrivalDate).getTime();
 
@@ -87,7 +97,7 @@ export function computeShelfLifeEstimate(
       remainingDays: meta.baseShelfLifeDays,
       lowDays: Math.round(meta.baseShelfLifeDays * 0.7),
       highDays: meta.baseShelfLifeDays,
-      urgency: deriveUrgency(meta.baseShelfLifeDays),
+      urgency: deriveUrgency(meta.baseShelfLifeDays, alertThresholds),
       dailyConsumptionRate: 1 / meta.baseShelfLifeDays,
       explanation:
         `No chamber readings found. Using full baseline of ${meta.baseShelfLifeDays} days. ` +
@@ -135,7 +145,10 @@ export function computeShelfLifeEstimate(
   const tempDiff = avgTempAll - meta.idealTempC;
   let explanation = `Lot stored for ${daysCovered} day(s). Average temp: ${avgTempAll.toFixed(1)}°C `;
   explanation += `(ideal: ${meta.idealTempC}°C). `;
-  if (tempDiff > 0.5) {
+  if (meta.minSafeTempC !== undefined && avgTempAll < meta.minSafeTempC) {
+    const chillingDiff = (meta.minSafeTempC - avgTempAll).toFixed(1);
+    explanation += `Temperature is ${chillingDiff}°C below safe minimum (${meta.minSafeTempC}°C) causing chilling injury. `;
+  } else if (tempDiff > 0.5) {
     explanation += `Temperature ${tempDiff.toFixed(1)}°C above ideal accelerates aging. `;
   } else if (tempDiff < -0.5) {
     explanation += `Slightly cooler than ideal — good for preservation. `;
@@ -149,14 +162,19 @@ export function computeShelfLifeEstimate(
     remainingDays: Math.max(0, parseFloat(remainingDays.toFixed(1))),
     lowDays,
     highDays,
-    urgency: deriveUrgency(lowDays),
+    urgency: deriveUrgency(lowDays, alertThresholds),
     dailyConsumptionRate: lastRate,
     explanation,
   };
 }
 
-function deriveUrgency(days: number): 'red' | 'amber' | 'green' {
-  if (days < 3)  return 'red';
-  if (days < 7)  return 'amber';
+export function deriveUrgency(
+  days: number,
+  alertThresholds?: AlertThresholds
+): 'red' | 'amber' | 'green' {
+  const redDays = alertThresholds?.shelfLifeRedDays ?? 3;
+  const amberDays = alertThresholds?.shelfLifeAmberDays ?? 7;
+  if (days < redDays) return 'red';
+  if (days < amberDays) return 'amber';
   return 'green';
 }

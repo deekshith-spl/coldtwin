@@ -1,4 +1,4 @@
-import { Zap } from 'lucide-react';
+import { Zap, CheckCircle } from 'lucide-react';
 import { useT } from '@/i18n';
 import type { EnergyWasteEstimate } from '@/types';
 
@@ -14,7 +14,7 @@ export function EnergyWasteCard({ estimates, totalKwh, totalCostINR }: EnergyWas
     <div className="card">
       <div className="flex items-center gap-2 mb-3">
         <div className="bg-yellow-50 p-2 rounded-lg">
-          <Zap size={16} className="text-yellow-600" />
+          <Zap size={16} className="text-yellow-600" aria-hidden="true" />
         </div>
         <div>
           <h3 className="font-semibold text-gray-900 text-sm">{T.energy_waste}</h3>
@@ -40,7 +40,10 @@ export function EnergyWasteCard({ estimates, totalKwh, totalCostINR }: EnergyWas
           </div>
         ))}
         {estimates.every(e => e.extraKwh <= 0) && (
-          <div className="text-xs text-green-600">All chambers within normal energy use.</div>
+          <div className="text-xs text-green-700 flex items-center gap-1.5 font-medium">
+            <CheckCircle size={14} className="shrink-0 text-green-600" aria-hidden="true" />
+            <span>All chambers within normal energy use.</span>
+          </div>
         )}
       </div>
     </div>

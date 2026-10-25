@@ -32,8 +32,13 @@ function LotDrawer({ lot, onClose }: { lot: RankedLot; onClose: () => void }) {
             <h2 className="text-base font-bold text-gray-900">{lot.lot.id} – {lot.lot.produce}</h2>
             <p className="text-xs text-gray-400">{lot.lot.farmerName} · {lot.lot.chamberId}</p>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100">
-            <X size={18} />
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close lot details"
+            className="min-w-[44px] min-h-[44px] p-2 rounded-lg text-gray-500 hover:text-gray-800 hover:bg-gray-100 flex items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cold-600"
+          >
+            <X size={18} aria-hidden="true" />
           </button>
         </div>
 
@@ -122,7 +127,7 @@ function LotDrawer({ lot, onClose }: { lot: RankedLot; onClose: () => void }) {
 
 export default function Lots() {
   const T = useT();
-  const { lots, readings, produceMeta, role, currentFarmerId } = useStore();
+  const { lots, readings, produceMeta, role, currentFarmerId, settings } = useStore();
   const [search, setSearch] = useState('');
   const [filterProduce, setFilterProduce] = useState('');
   const [filterChamber, setFilterChamber] = useState('');
@@ -133,7 +138,10 @@ export default function Lots() {
     ? lots.filter(l => l.farmerId === currentFarmerId)
     : lots;
 
-  const ranked = useMemo(() => rankLots(visibleLots, readings, produceMeta), [visibleLots, readings, produceMeta]);
+  const ranked = useMemo(
+    () => rankLots(visibleLots, readings, produceMeta, settings.alertThresholds),
+    [visibleLots, readings, produceMeta, settings.alertThresholds]
+  );
 
   const filtered = ranked.filter(item => {
     const q = search.toLowerCase();
@@ -218,9 +226,19 @@ export default function Lots() {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {filtered.map(item => (
-                <tr key={item.lot.id}
-                  className="hover:bg-gray-50 cursor-pointer transition-colors"
+                <tr
+                  key={item.lot.id}
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`View details for lot ${item.lot.id}, ${item.lot.produce}, status ${item.urgency}`}
+                  className="hover:bg-gray-50 cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cold-600 focus-visible:ring-inset"
                   onClick={() => setSelectedLot(item)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setSelectedLot(item);
+                    }
+                  }}
                 >
                   <td className="py-3 px-4 text-gray-400 font-bold">{item.rank}</td>
                   <td className="py-3 px-4">

@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { Upload, FileText, Plus, Download, FlaskConical } from 'lucide-react';
+import { Upload, FileText, Plus, Download, FlaskConical, CheckCircle, AlertTriangle, Info } from 'lucide-react';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 import { useStore } from '@/store/useStore';
@@ -119,11 +119,11 @@ function UploadTab() {
   return (
     <div className="flex flex-col gap-4">
       {/* Demo Data button */}
-      <div className="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-xl p-4">
-        <FlaskConical size={20} className="text-blue-600 shrink-0" />
+      <div className="flex items-center gap-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 rounded-xl p-4">
+        <FlaskConical size={20} className="text-blue-600 dark:text-blue-400 shrink-0" />
         <div className="flex-1">
-          <div className="text-sm font-medium text-blue-900">Quick start with demo data</div>
-          <div className="text-xs text-blue-600">60 days, 4 chambers, 12 lots, 2 injected faults</div>
+          <div className="text-sm font-medium text-blue-900 dark:text-blue-200">{T.quick_start_demo}</div>
+          <div className="text-xs text-blue-600 dark:text-blue-400">{T.demo_details}</div>
         </div>
         <button
           onClick={loadDemoData}
@@ -135,29 +135,51 @@ function UploadTab() {
 
       {/* Drop zone */}
       <div
+        role="button"
+        tabIndex={0}
+        aria-label="Upload CSV or Excel file by clicking or dragging and dropping"
+        onKeyDown={e => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            fileRef.current?.click();
+          }
+        }}
         onDragOver={e => { e.preventDefault(); setDragging(true); }}
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
         onClick={() => fileRef.current?.click()}
-        className={`border-2 border-dashed rounded-xl p-10 flex flex-col items-center gap-3 cursor-pointer transition-colors ${
-          dragging ? 'border-cold-500 bg-cold-50' : 'border-gray-300 hover:border-cold-400'
+        className={`border-2 border-dashed rounded-xl p-10 flex flex-col items-center gap-3 cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cold-600 ${
+          dragging ? 'border-cold-500 bg-cold-50 dark:bg-cold-950/30' : 'border-gray-300 dark:border-gray-700 hover:border-cold-400'
         }`}
       >
-        <Upload size={32} className="text-gray-400" />
-        <div className="text-sm font-medium text-gray-700">Drop CSV or Excel file here</div>
-        <div className="text-xs text-gray-400">Supports .csv and .xlsx · Columns auto-detected</div>
-        <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls" className="hidden"
-          onChange={e => e.target.files?.[0] && processFile(e.target.files[0])} />
+        <Upload size={32} className="text-gray-400 dark:text-gray-500" aria-hidden="true" />
+        <div className="text-sm font-medium text-gray-700 dark:text-gray-200">{T.drop_csv_excel}</div>
+        <div className="text-xs text-gray-400 dark:text-gray-500">{T.supports_csv_xlsx}</div>
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".csv,.xlsx,.xls"
+          className="hidden"
+          aria-label="Choose telemetry or lot CSV or Excel file"
+          onChange={e => e.target.files?.[0] && processFile(e.target.files[0])}
+        />
       </div>
 
       {/* Messages */}
       {messages.map((m, i) => (
-        <div key={i} className={`text-sm px-4 py-2.5 rounded-lg ${
+        <div key={i} className={`text-sm px-4 py-2.5 rounded-lg flex items-center gap-2 ${
           m.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' :
           m.type === 'error'   ? 'bg-red-50 text-red-800 border border-red-200' :
           'bg-blue-50 text-blue-800 border border-blue-200'
         }`}>
-          {m.text}
+          {m.type === 'success' ? (
+            <CheckCircle size={16} className="text-green-600 shrink-0" aria-hidden="true" />
+          ) : m.type === 'error' ? (
+            <AlertTriangle size={16} className="text-red-600 shrink-0" aria-hidden="true" />
+          ) : (
+            <Info size={16} className="text-blue-600 shrink-0" aria-hidden="true" />
+          )}
+          <span>{m.text}</span>
         </div>
       ))}
     </div>
@@ -214,15 +236,15 @@ function ManualTab() {
     setTimeout(() => setSaved(false), 2000);
   };
 
-  const inputCls = 'w-full border border-gray-300 rounded-lg px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-cold-500';
-  const labelCls = 'block text-sm font-medium text-gray-700 mb-1';
+  const inputCls = 'w-full border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-cold-500';
+  const labelCls = 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1';
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex gap-2">
         {(['reading', 'lot'] as const).map(t => (
           <button key={t} onClick={() => setTab(t)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === t ? 'bg-cold-700 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === t ? 'bg-cold-700 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
             {t === 'reading' ? 'Daily Reading' : 'New Lot Arrival'}
           </button>
         ))}
@@ -313,19 +335,20 @@ function ManualTab() {
 
 // ── Templates Tab ─────────────────────────────────────────────
 function TemplatesTab() {
+  const T = useT();
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-sm text-gray-600">
+      <p className="text-sm text-gray-600 dark:text-gray-400">
         Download these CSV templates, fill them in, and upload them using the Upload tab.
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="card flex flex-col gap-3">
           <div className="flex items-center gap-2">
-            <FileText size={20} className="text-cold-600" />
-            <h3 className="font-medium text-gray-900">Readings Template</h3>
+            <FileText size={20} className="text-cold-600 dark:text-cold-400" />
+            <h3 className="font-medium text-gray-900 dark:text-gray-100">{T.readings_template}</h3>
           </div>
-          <p className="text-xs text-gray-500">Daily temperature, humidity, compressor runtime, and door-open data.</p>
-          <div className="text-xs text-gray-400 font-mono bg-gray-50 p-2 rounded">
+          <p className="text-xs text-gray-500 dark:text-gray-400">Daily temperature, humidity, compressor runtime, and door-open data.</p>
+          <div className="text-xs text-gray-600 dark:text-gray-300 font-mono bg-gray-50 dark:bg-gray-800 p-2 rounded">
             {READINGS_HEADERS.join(', ')}
           </div>
           <button onClick={() => downloadCSV(READINGS_HEADERS, 'coldtwin_readings_template.csv')}
@@ -335,11 +358,11 @@ function TemplatesTab() {
         </div>
         <div className="card flex flex-col gap-3">
           <div className="flex items-center gap-2">
-            <FileText size={20} className="text-cold-600" />
-            <h3 className="font-medium text-gray-900">Lots Template</h3>
+            <FileText size={20} className="text-cold-600 dark:text-cold-400" />
+            <h3 className="font-medium text-gray-900 dark:text-gray-100">{T.lots_template}</h3>
           </div>
-          <p className="text-xs text-gray-500">Lot arrivals with produce type, quantity, farmer, and chamber.</p>
-          <div className="text-xs text-gray-400 font-mono bg-gray-50 p-2 rounded">
+          <p className="text-xs text-gray-500 dark:text-gray-400">Lot arrivals with produce type, quantity, farmer, and chamber.</p>
+          <div className="text-xs text-gray-600 dark:text-gray-300 font-mono bg-gray-50 dark:bg-gray-800 p-2 rounded">
             {LOTS_HEADERS.join(', ')}
           </div>
           <button onClick={() => downloadCSV(LOTS_HEADERS, 'coldtwin_lots_template.csv')}
@@ -354,28 +377,29 @@ function TemplatesTab() {
 
 // ── Main ──────────────────────────────────────────────────────
 export default function DataInput() {
+  const T = useT();
   const [tab, setTab] = useState<Tab>('upload');
   const tabs: { value: Tab; label: string; icon: JSX.Element }[] = [
-    { value: 'upload',    label: 'Upload File', icon: <Upload size={15} /> },
-    { value: 'manual',    label: 'Manual Entry', icon: <Plus size={15} /> },
-    { value: 'templates', label: 'Templates',   icon: <Download size={15} /> },
+    { value: 'upload',    label: T.tab_upload, icon: <Upload size={15} /> },
+    { value: 'manual',    label: T.tab_manual, icon: <Plus size={15} /> },
+    { value: 'templates', label: T.tab_templates,   icon: <Download size={15} /> },
   ];
 
   return (
     <div className="flex flex-col gap-5 max-w-3xl">
       <div>
-        <h1 className="text-xl font-bold text-gray-900">Data Input</h1>
-        <p className="text-sm text-gray-500 mt-1">Upload a file, enter readings manually, or download templates.</p>
+        <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">{T.nav_data_input}</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Upload a file, enter readings manually, or download templates.</p>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-gray-200 pb-0">
+      <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700 pb-0">
         {tabs.map(t => (
           <button key={t.value} onClick={() => setTab(t.value)}
             className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px ${
               tab === t.value
-                ? 'border-cold-600 text-cold-700'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+                ? 'border-cold-600 text-cold-700 dark:text-cold-300 font-semibold'
+                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
             }`}>
             {t.icon} {t.label}
           </button>

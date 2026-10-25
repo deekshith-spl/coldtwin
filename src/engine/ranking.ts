@@ -6,7 +6,7 @@
 // Secondary sort: remainingDays ascending as tiebreaker.
 // ============================================================
 
-import type { Lot, Reading, ProduceMeta, RankedLot, ShelfLifeEstimate } from '@/types';
+import type { Lot, Reading, ProduceMeta, RankedLot, ShelfLifeEstimate, AlertThresholds } from '@/types';
 import { computeShelfLifeEstimate } from './shelfLife';
 
 /**
@@ -20,11 +20,12 @@ import { computeShelfLifeEstimate } from './shelfLife';
 export function rankLots(
   lots: Lot[],
   readings: Reading[],
-  produceMeta: ProduceMeta[]
+  produceMeta: ProduceMeta[],
+  alertThresholds?: AlertThresholds
 ): RankedLot[] {
   const estimates: (ShelfLifeEstimate & { lot: Lot })[] = lots.map(lot => {
     const meta = produceMeta.find(m => m.produce === lot.produce) ?? defaultMeta(lot.produce);
-    const estimate = computeShelfLifeEstimate(lot, readings, meta);
+    const estimate = computeShelfLifeEstimate(lot, readings, meta, alertThresholds);
     return { ...estimate, lot };
   });
 

@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { useStore } from '@/store/useStore';
 import { useT } from '@/i18n';
 import type { Language, ProduceMeta } from '@/types';
-import { Save, RotateCcw, AlertCircle, Check } from 'lucide-react';
+import { Save, RotateCcw, AlertCircle, Check, HelpCircle } from 'lucide-react';
 import { DEFAULT_PRODUCE_META } from '@/engine/demoData';
 
 export default function Settings() {
   const T = useT();
-  const { settings, updateSettings, produceMeta, updateProduceMeta, clearData } = useStore();
+  const { settings, updateSettings, produceMeta, updateProduceMeta, clearData, openTour } = useStore();
 
   const [storeName, setStoreName] = useState(settings.storeName);
   const [tariff, setTariff] = useState(settings.tariffINRperKwh.toString());
@@ -24,7 +24,12 @@ export default function Settings() {
     const updated = [...localProduce];
     updated[index] = {
       ...updated[index],
-      [field]: typeof updated[index][field] === 'number' ? parseFloat(value as string) || 0 : value,
+      [field]:
+        field === 'minSafeTempC'
+          ? value === '' ? undefined : parseFloat(value as string) || 0
+          : typeof updated[index][field] === 'number'
+          ? parseFloat(value as string) || 0
+          : value,
     };
     setLocalProduce(updated);
   };
@@ -50,28 +55,62 @@ export default function Settings() {
     setLocalProduce(DEFAULT_PRODUCE_META);
   };
 
-  const inputCls = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cold-500';
-  const labelCls = 'block text-xs font-semibold text-gray-600 mb-1';
+  const inputCls =
+    'w-full border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-cold-500';
+  const labelCls = 'block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1';
 
   return (
     <div className="flex flex-col gap-6 max-w-4xl">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">{T.nav_settings}</h1>
-          <p className="text-sm text-gray-500 mt-1">Configure facility parameters, electricity tariffs, and produce baseline values.</p>
+          <div className="flex items-center gap-3">
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white">{T.nav_settings}</h1>
+            <button
+              type="button"
+              onClick={openTour}
+              className="inline-flex items-center gap-1 text-xs text-cold-700 dark:text-cold-400 hover:text-cold-900 dark:hover:text-cold-300 font-semibold underline underline-offset-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cold-600 rounded px-1 py-0.5"
+            >
+              <RotateCcw size={12} aria-hidden="true" />
+              <span>{T.replay_tour}</span>
+            </button>
+          </div>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{T.general_config_sub}</p>
         </div>
         <button
           onClick={handleSave}
           className="btn-primary flex items-center gap-2"
         >
-          {savedMessage ? <Check size={16} /> : <Save size={16} />}
-          <span>{savedMessage ? 'Saved Successfully' : T.save}</span>
+          {savedMessage ? <Check size={16} aria-hidden="true" /> : <Save size={16} aria-hidden="true" />}
+          <span>{savedMessage ? T.saved_successfully : T.save}</span>
+        </button>
+      </div>
+
+      {/* Guided Tour Banner */}
+      <div className="card bg-cold-50/50 dark:bg-cold-950/30 border-cold-200/60 dark:border-cold-900/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-start gap-3">
+          <div className="p-2 bg-cold-100 dark:bg-cold-900 text-cold-700 dark:text-cold-300 rounded-lg shrink-0">
+            <HelpCircle size={18} aria-hidden="true" />
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white">ColdTwin Feature Walkthrough</h2>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+              Review how ColdTwin models chamber thermodynamics, how to load sensor data, and how to act on the Sell First list.
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={openTour}
+          className="btn-secondary text-cold-700 dark:text-cold-300 border-cold-300 dark:border-cold-800 hover:bg-white dark:hover:bg-gray-800 flex items-center justify-center gap-1.5 shrink-0 min-h-[44px]"
+        >
+          <RotateCcw size={14} aria-hidden="true" />
+          <span>{T.replay_tour}</span>
         </button>
       </div>
 
       {/* General Configuration */}
       <div className="card">
-        <h2 className="text-base font-semibold text-gray-900 mb-4">General Configuration</h2>
+        <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-4">{T.general_config}</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className={labelCls}>{T.store_name}</label>
@@ -109,11 +148,13 @@ export default function Settings() {
 
       {/* Alert Thresholds */}
       <div className="card">
-        <h2 className="text-base font-semibold text-gray-900 mb-1">{T.thresholds}</h2>
-        <p className="text-xs text-gray-500 mb-4">Customize triggers for equipment fault risks and produce urgency.</p>
+        <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-1">{T.thresholds}</h2>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+          Customize active triggers for equipment fault risks, residual alerts, and FEFO shelf-life urgency.
+        </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
-            <label className={labelCls}>Fault Risk Alert Score (0-100)</label>
+            <label className={labelCls}>{T.fault_risk_score_alert}</label>
             <input
               type="number"
               value={riskThreshold}
@@ -122,7 +163,7 @@ export default function Settings() {
             />
           </div>
           <div>
-            <label className={labelCls}>Max Temp Deviation (°C)</label>
+            <label className={labelCls}>{T.max_temp_deviation}</label>
             <input
               type="number"
               step="0.5"
@@ -132,7 +173,7 @@ export default function Settings() {
             />
           </div>
           <div>
-            <label className={labelCls}>Urgent Shelf-Life Red (&lt; days)</label>
+            <label className={labelCls}>{T.urgent_shelf_red}</label>
             <input
               type="number"
               value={shelfRed}
@@ -141,7 +182,7 @@ export default function Settings() {
             />
           </div>
           <div>
-            <label className={labelCls}>Warning Shelf-Life Amber (&lt; days)</label>
+            <label className={labelCls}>{T.warning_shelf_amber}</label>
             <input
               type="number"
               value={shelfAmber}
@@ -156,40 +197,51 @@ export default function Settings() {
       <div className="card">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h2 className="text-base font-semibold text-gray-900">Produce Reference Library</h2>
-            <p className="text-xs text-gray-500">Ideal parameters and Q10 rate constants used for shelf-life estimations.</p>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white">{T.produce_library}</h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{T.produce_library_sub}</p>
           </div>
           <button
             onClick={handleResetDefaults}
-            className="text-xs text-cold-600 hover:text-cold-800 flex items-center gap-1 font-medium"
+            className="text-xs text-cold-600 dark:text-cold-400 hover:text-cold-800 dark:hover:text-cold-300 flex items-center gap-1 font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-cold-600 rounded"
           >
-            <RotateCcw size={12} /> Reset to Default Values
+            <RotateCcw size={12} aria-hidden="true" /> {T.reset_defaults}
           </button>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-gray-50 dark:bg-gray-800/80 border-b border-gray-200 dark:border-gray-700">
               <tr>
-                <th className="text-left py-2.5 px-3 font-semibold text-gray-600">Produce</th>
-                <th className="text-right py-2.5 px-3 font-semibold text-gray-600">Ideal Temp (°C)</th>
-                <th className="text-right py-2.5 px-3 font-semibold text-gray-600">Ideal Humidity (%RH)</th>
-                <th className="text-right py-2.5 px-3 font-semibold text-gray-600">Base Shelf Life (Days)</th>
-                <th className="text-right py-2.5 px-3 font-semibold text-gray-600">Q10 Rate Factor</th>
-                <th className="text-left py-2.5 px-3 font-semibold text-gray-600">Agronomic Notes</th>
+                <th className="text-left py-2.5 px-3 font-semibold text-gray-600 dark:text-gray-300">{T.produce}</th>
+                <th className="text-right py-2.5 px-3 font-semibold text-gray-600 dark:text-gray-300">Ideal Temp (°C)</th>
+                <th className="text-right py-2.5 px-3 font-semibold text-gray-600 dark:text-gray-300">{T.min_safe_temp}</th>
+                <th className="text-right py-2.5 px-3 font-semibold text-gray-600 dark:text-gray-300">Ideal Humidity (%RH)</th>
+                <th className="text-right py-2.5 px-3 font-semibold text-gray-600 dark:text-gray-300">Base Life ({T.days})</th>
+                <th className="text-right py-2.5 px-3 font-semibold text-gray-600 dark:text-gray-300">Q10 Factor</th>
+                <th className="text-left py-2.5 px-3 font-semibold text-gray-600 dark:text-gray-300">Agronomic Notes</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
               {localProduce.map((p, idx) => (
-                <tr key={p.produce} className="hover:bg-gray-50">
-                  <td className="py-2 px-3 font-medium text-gray-900 capitalize">{p.produce}</td>
+                <tr key={p.produce} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50">
+                  <td className="py-2 px-3 font-medium text-gray-900 dark:text-gray-100 capitalize">{p.produce}</td>
                   <td className="py-2 px-3 text-right">
                     <input
                       type="number"
                       step="0.5"
                       value={p.idealTempC}
                       onChange={e => handleProduceChange(idx, 'idealTempC', e.target.value)}
-                      className="w-20 text-right border border-gray-200 rounded px-2 py-1 text-xs"
+                      className="w-16 text-right border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded px-2 py-1 text-xs"
+                    />
+                  </td>
+                  <td className="py-2 px-3 text-right">
+                    <input
+                      type="number"
+                      step="0.5"
+                      placeholder="None"
+                      value={p.minSafeTempC ?? ''}
+                      onChange={e => handleProduceChange(idx, 'minSafeTempC', e.target.value)}
+                      className="w-16 text-right border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded px-2 py-1 text-xs"
                     />
                   </td>
                   <td className="py-2 px-3 text-right">
@@ -197,7 +249,7 @@ export default function Settings() {
                       type="number"
                       value={p.idealHumidity}
                       onChange={e => handleProduceChange(idx, 'idealHumidity', e.target.value)}
-                      className="w-20 text-right border border-gray-200 rounded px-2 py-1 text-xs"
+                      className="w-16 text-right border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded px-2 py-1 text-xs"
                     />
                   </td>
                   <td className="py-2 px-3 text-right">
@@ -205,7 +257,7 @@ export default function Settings() {
                       type="number"
                       value={p.baseShelfLifeDays}
                       onChange={e => handleProduceChange(idx, 'baseShelfLifeDays', e.target.value)}
-                      className="w-20 text-right border border-gray-200 rounded px-2 py-1 text-xs"
+                      className="w-16 text-right border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded px-2 py-1 text-xs"
                     />
                   </td>
                   <td className="py-2 px-3 text-right">
@@ -214,7 +266,7 @@ export default function Settings() {
                       step="0.1"
                       value={p.q10Factor}
                       onChange={e => handleProduceChange(idx, 'q10Factor', e.target.value)}
-                      className="w-20 text-right border border-gray-200 rounded px-2 py-1 text-xs"
+                      className="w-16 text-right border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded px-2 py-1 text-xs"
                     />
                   </td>
                   <td className="py-2 px-3">
@@ -222,7 +274,7 @@ export default function Settings() {
                       type="text"
                       value={p.notes}
                       onChange={e => handleProduceChange(idx, 'notes', e.target.value)}
-                      className="w-full border border-gray-200 rounded px-2 py-1 text-xs"
+                      className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded px-2 py-1 text-xs"
                     />
                   </td>
                 </tr>
@@ -233,12 +285,12 @@ export default function Settings() {
       </div>
 
       {/* Danger Zone */}
-      <div className="card border-red-100 bg-red-50/30">
+      <div className="card border-red-100 dark:border-red-900/60 bg-red-50/30 dark:bg-red-950/20">
         <div className="flex items-start gap-3">
-          <AlertCircle size={20} className="text-red-500 shrink-0 mt-0.5" />
+          <AlertCircle size={20} className="text-red-500 shrink-0 mt-0.5" aria-hidden="true" />
           <div className="flex-1">
-            <h3 className="text-sm font-semibold text-red-900">Reset & Clear Data</h3>
-            <p className="text-xs text-red-700 mt-1">
+            <h3 className="text-sm font-semibold text-red-900 dark:text-red-200">{T.reset_clear_data}</h3>
+            <p className="text-xs text-red-700 dark:text-red-300 mt-1">
               Clear all readings, lots, and simulated faults from browser storage. You can restore demo data at any time from the Data Input page.
             </p>
           </div>
@@ -250,7 +302,7 @@ export default function Settings() {
             }}
             className="btn-danger"
           >
-            Clear Stored Data
+            {T.clear_stored_data}
           </button>
         </div>
       </div>

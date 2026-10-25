@@ -45,6 +45,7 @@ export const DEFAULT_PRODUCE_META: ProduceMeta[] = [
     idealHumidity: 90,
     baseShelfLifeDays: 21,
     q10Factor: 2.8,
+    minSafeTempC: 7,
     notes: 'Chilling injury below 7°C. Monitor closely.',
   },
 ];
