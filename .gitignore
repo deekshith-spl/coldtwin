@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Debug logs
+*.log
+npm-debug.log*
+
+# Local editor and operating system files
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Python cache, if applicable
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Local database files — review before publishing
+*.db
+*.sqlite
+*.sqlite3
+
+# Private keys
+*.pem
+*.key
