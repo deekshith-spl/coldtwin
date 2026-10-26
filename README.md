@@ -119,10 +119,10 @@ docs/         screenshots
 - Voice and photo input (read a logbook photo, answer questions in Telugu)
 ## Team
 
-**Team 15**
+**Team 15**, Chaitanya Bharathi Institute of Technology
+*Seva First Innovation Challenge*
 
-- K. Ram Sri Varun 
+- K. Ram Sri Varun
 - K. Ramith
 - D. Rishwanth
 - G. Deekshith
- Chaitanya Bharathi Institute of Technology(“Seva First Innovation Challenge”)
