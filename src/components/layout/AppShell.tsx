@@ -34,11 +34,11 @@ export function AppShell() {
 
   // Mobile bottom tab bar items: Dashboard, Data, Twin, Lots, Reports
   const mobileTabs = [
-    { to: '/dashboard',    icon: <LayoutDashboard size={20} aria-hidden="true" />, label: 'Dashboard' },
-    { to: '/data-input',   icon: <Upload size={20} aria-hidden="true" />,          label: 'Data' },
-    { to: '/digital-twin', icon: <Cpu size={20} aria-hidden="true" />,             label: 'Twin' },
-    { to: '/lots',         icon: <Package2 size={20} aria-hidden="true" />,        label: 'Lots' },
-    { to: '/reports',      icon: <FileText size={20} aria-hidden="true" />,        label: 'Reports' },
+    { to: '/dashboard',    icon: <LayoutDashboard size={20} aria-hidden="true" />, label: T.nav_dashboard },
+    { to: '/data-input',   icon: <Upload size={20} aria-hidden="true" />,          label: T.tab_data },
+    { to: '/digital-twin', icon: <Cpu size={20} aria-hidden="true" />,             label: T.tab_twin },
+    { to: '/lots',         icon: <Package2 size={20} aria-hidden="true" />,        label: T.nav_lots },
+    { to: '/reports',      icon: <FileText size={20} aria-hidden="true" />,        label: T.nav_reports },
   ];
 
   const SidebarContent = () => (
@@ -115,8 +115,8 @@ export function AppShell() {
             <button
               type="button"
               onClick={toggleTheme}
-              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              aria-label={theme === 'dark' ? (T.light_mode || 'Switch to light mode') : (T.dark_mode || 'Switch to dark mode')}
+              title={theme === 'dark' ? (T.light_mode || 'Switch to light mode') : (T.dark_mode || 'Switch to dark mode')}
               className="min-w-[44px] min-h-[44px] p-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg flex items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cold-600 dark:focus-visible:ring-cold-400"
             >
               {theme === 'dark' ? (

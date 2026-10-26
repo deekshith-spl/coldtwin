@@ -161,22 +161,21 @@ export const useStore = create<StoreState>()(
 
       simulateFault: (chamberId, faultType) => {
         const state = get();
-        // Preserve exact snapshot before any simulation is injected
-        const originalReadings = state.preSimulationReadings ?? [...state.readings];
 
         const chamberReadings = state.readings
           .filter(r => r.chamberId === chamberId)
           .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
-        // Inject fault into the last 48 readings of this chamber
+        // Target only the last 48 readings of this chamber to keep payload small for localStorage
         const startIdx = Math.max(0, chamberReadings.length - 48);
+        const originalModifiedReadings = chamberReadings.slice(startIdx).map(r => ({ ...r }));
+
+        // Inject fault into the last 48 readings of this chamber
         const patched = injectFaultPattern(chamberReadings, faultType, startIdx);
 
-        // Replace the affected readings in the global list
-        const patchedIds = new Set(patched.map(r => r.id));
-        const otherReadings = state.readings.filter(r =>
-          r.chamberId !== chamberId || !patchedIds.has(r.id)
-        );
+        // Replace only the patched readings in the global list while preserving original order
+        const patchedMap = new Map(patched.map(r => [r.id, r]));
+        const updatedReadings = state.readings.map(r => patchedMap.get(r.id) ?? r);
 
         const injection: FaultInjection = {
           id: `SIM_${Date.now()}`,
@@ -186,26 +185,32 @@ export const useStore = create<StoreState>()(
           durationHours: 24,
         };
 
+        // If a simulation is already active, retain the original baseline; otherwise store the modified readings
+        const savedPreReadings = state.preSimulationReadings ?? originalModifiedReadings;
+
         set({
-          readings: [...otherReadings, ...patched],
+          readings: updatedReadings,
           activeSimulation: injection,
-          preSimulationReadings: originalReadings,
+          preSimulationReadings: savedPreReadings,
           simulatedFaults: [...state.simulatedFaults, injection],
         });
       },
 
       clearSimulation: () => {
         const state = get();
-        // Restore the exact same data that existed prior to simulation without regenerating random data
-        if (state.preSimulationReadings) {
+        // Restore only the specific readings that were modified, preserving all other chamber data
+        if (state.preSimulationReadings && state.preSimulationReadings.length > 0) {
+          const originalMap = new Map(state.preSimulationReadings.map(r => [r.id, r]));
+          const restoredReadings = state.readings.map(r => originalMap.get(r.id) ?? r);
           set({
-            readings: state.preSimulationReadings,
+            readings: restoredReadings,
             preSimulationReadings: null,
             activeSimulation: null,
           });
         } else {
           set({
             activeSimulation: null,
+            preSimulationReadings: null,
           });
         }
       },
@@ -234,7 +239,7 @@ export const useStore = create<StoreState>()(
     }),
     {
       name: 'coldtwin_v1',
-      // Only persist data, not transient state
+      // Only persist data, not transient UI state like isTourOpen
       partialize: (state) => ({
         role: state.role,
         currentFarmerId: state.currentFarmerId,
@@ -245,7 +250,21 @@ export const useStore = create<StoreState>()(
         farmers: state.farmers,
         produceMeta: state.produceMeta,
         settings: state.settings,
+        activeSimulation: state.activeSimulation,
+        preSimulationReadings: state.preSimulationReadings,
       }),
+      merge: (persistedState: any, currentState: StoreState) => {
+        const merged = { ...currentState, ...(persistedState as Partial<StoreState>) };
+        if (merged.produceMeta) {
+          merged.produceMeta = merged.produceMeta.map(p => {
+            if (p.produce === 'chilli' && p.minSafeTempC === undefined) {
+              return { ...p, minSafeTempC: 7 };
+            }
+            return p;
+          });
+        }
+        return merged;
+      },
     }
   )
 );

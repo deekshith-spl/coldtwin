@@ -38,7 +38,7 @@ export function SellFirstCard({ rankedLots, limit = 8 }: SellFirstCardProps) {
 
       {/* List */}
       {visible.length === 0 ? (
-        <div className="text-sm text-gray-400 py-4 text-center">No lots loaded. Click "Load Demo Data" to see the Sell First list.</div>
+        <div className="text-sm text-gray-400 py-4 text-center">{T.no_lots_loaded_demo}</div>
       ) : (
         <div className="flex flex-col divide-y divide-gray-50">
           {visible.map(item => {

@@ -63,7 +63,7 @@ export function FixBeforeBreaksCard({ alerts }: FixBeforeBreaksCardProps) {
                           alert.level === 'amber' ? 'bg-amber-100 text-amber-800 border-amber-200' :
                           'bg-green-100 text-green-800 border-green-200'
                         }`}>
-                          {alert.level === 'red' ? 'Critical Risk' : alert.level === 'amber' ? 'Warning' : 'Normal'}
+                          {alert.level === 'red' ? (T.critical_risk || 'Critical Risk') : alert.level === 'amber' ? (T.warning_risk || 'Warning') : (T.normal_risk || 'Normal')}
                         </span>
                       </div>
                       <p className="text-xs text-gray-600 mt-0.5 leading-relaxed line-clamp-2">

@@ -1,28 +1,28 @@
 import { ShieldAlert, BookOpen, Cpu, Leaf, Info, Zap } from 'lucide-react';
 import { useStore } from '@/store/useStore';
+import { useT } from '@/i18n';
 
 export default function Assumptions() {
+  const T = useT();
   const { produceMeta, chambers, settings } = useStore();
 
   return (
     <div className="flex flex-col gap-6 max-w-4xl">
       <div>
-        <h1 className="text-xl font-bold text-gray-900">Model Assumptions & Scientific Transparency</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Complete documentation of equations, constants, default assumptions, and operational boundaries of ColdTwin.
+        <h1 className="text-xl font-bold text-gray-900 dark:text-white">{T.assumptions_title}</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          {T.assumptions_sub}
         </p>
       </div>
 
       {/* Read-Only Disclaimer Callout */}
-      <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-xl">
+      <div className="bg-amber-50 dark:bg-amber-950/30 border-l-4 border-amber-500 p-4 rounded-r-xl">
         <div className="flex items-start gap-3">
-          <ShieldAlert className="text-amber-600 shrink-0 mt-0.5" size={20} />
+          <ShieldAlert className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" size={20} />
           <div>
-            <h3 className="text-sm font-bold text-amber-900">Read-Only Decision Support System</h3>
-            <p className="text-xs text-amber-800 mt-1 leading-relaxed">
-              <strong>ColdTwin never controls physical equipment.</strong> It has no remote actuator, PLC, or thermostat write access.
-              All outputs are purely informational recommendations intended to guide manual decisions by cold store owners, technicians, and farmers.
-              Physical verification and safety inspections must always be conducted before operating or repairing machinery.
+            <h3 className="text-sm font-bold text-amber-900 dark:text-amber-200">{T.read_only_decision_support}</h3>
+            <p className="text-xs text-amber-800 dark:text-amber-300 mt-1 leading-relaxed">
+              {T.read_only_disclaimer}
             </p>
           </div>
         </div>
@@ -31,36 +31,34 @@ export default function Assumptions() {
       {/* Honesty & No Accuracy Claims */}
       <div className="card">
         <div className="flex items-center gap-2 mb-3">
-          <Info className="text-cold-700" size={18} />
-          <h2 className="text-base font-semibold text-gray-900">No Hard Accuracy Claims</h2>
+          <Info className="text-cold-700 dark:text-cold-400" size={18} />
+          <h2 className="text-base font-semibold text-gray-900 dark:text-white">{T.no_hard_accuracy}</h2>
         </div>
-        <p className="text-sm text-gray-600 leading-relaxed">
-          Produce biology is intrinsically variable. True shelf life depends on pre-harvest climatic conditions, agronomic practices, variety-specific respiration rates, initial microbial load, post-harvest handling, and packing hygiene.
-          ColdTwin models temperature-driven kinetics using first-principles approximations (Q10 rule and lumped-capacitance thermal twin).
-          <strong> All predictions are labelled as estimates with explicit uncertainty ranges.</strong>
+        <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+          {T.no_hard_accuracy_desc}
         </p>
       </div>
 
       {/* Produce Library Assumptions */}
       <div className="card">
         <div className="flex items-center gap-2 mb-3">
-          <Leaf className="text-green-600" size={18} />
-          <h2 className="text-base font-semibold text-gray-900">Produce Parameters (Illustrative Placeholders)</h2>
+          <Leaf className="text-green-600 dark:text-green-400" size={18} />
+          <h2 className="text-base font-semibold text-gray-900 dark:text-white">{T.produce_assumptions_title}</h2>
         </div>
-        <p className="text-xs text-gray-500 mb-4">
-          The values below are baseline placeholders drawn from standard post-harvest literature. They must be calibrated against real cold-store batches in your local region.
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+          {T.produce_assumptions_desc}
         </p>
 
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
               <tr>
-                <th className="text-left py-2.5 px-3 font-semibold text-gray-600">Produce</th>
-                <th className="text-right py-2.5 px-3 font-semibold text-gray-600">Ideal Temp (°C)</th>
-                <th className="text-right py-2.5 px-3 font-semibold text-gray-600">Ideal Humidity (%RH)</th>
-                <th className="text-right py-2.5 px-3 font-semibold text-gray-600">Base Shelf Life (Days)</th>
-                <th className="text-right py-2.5 px-3 font-semibold text-gray-600">Q10 Factor</th>
-                <th className="text-left py-2.5 px-3 font-semibold text-gray-600">Post-Harvest Caveats</th>
+                <th className="text-left py-2.5 px-3 font-semibold text-gray-600 dark:text-gray-300">{T.produce}</th>
+                <th className="text-right py-2.5 px-3 font-semibold text-gray-600 dark:text-gray-300">{T.ideal_temp}</th>
+                <th className="text-right py-2.5 px-3 font-semibold text-gray-600 dark:text-gray-300">{T.ideal_humidity}</th>
+                <th className="text-right py-2.5 px-3 font-semibold text-gray-600 dark:text-gray-300">{T.base_life} ({T.days})</th>
+                <th className="text-right py-2.5 px-3 font-semibold text-gray-600 dark:text-gray-300">{T.q10_factor}</th>
+                <th className="text-left py-2.5 px-3 font-semibold text-gray-600 dark:text-gray-300">{T.agronomic_notes}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -69,7 +67,7 @@ export default function Assumptions() {
                   <td className="py-2.5 px-3 font-medium text-gray-900 capitalize">{p.produce}</td>
                   <td className="py-2.5 px-3 text-right font-mono">{p.idealTempC}°C</td>
                   <td className="py-2.5 px-3 text-right font-mono">{p.idealHumidity}%</td>
-                  <td className="py-2.5 px-3 text-right font-mono">{p.baseShelfLifeDays} d</td>
+                  <td className="py-2.5 px-3 text-right font-mono">{p.baseShelfLifeDays} {T.days}</td>
                   <td className="py-2.5 px-3 text-right font-mono">{p.q10Factor}</td>
                   <td className="py-2.5 px-3 text-gray-500">{p.notes || 'Subject to local variety testing'}</td>
                 </tr>

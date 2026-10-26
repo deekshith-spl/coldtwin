@@ -19,8 +19,8 @@ export default function Dashboard() {
   const { chambers, readings, lots, produceMeta, settings, role, currentFarmerId, loadDemoData } = useStore();
 
   // Filter lots by farmer role
-  const visibleLots = role === 'farmer' && currentFarmerId
-    ? lots.filter(l => l.farmerId === currentFarmerId)
+  const visibleLots = role === 'farmer'
+    ? (currentFarmerId ? lots.filter(l => l.farmerId === currentFarmerId) : [])
     : lots;
 
   // Per-chamber computations
@@ -43,16 +43,36 @@ export default function Dashboard() {
 
   const { totalExtraKwh, totalExtraCostINR } = totalEnergyWaste(energyEstimates);
 
-  // Determine status banner
-  const highAlerts = alerts.filter(a => a.riskScore >= settings.alertThresholds.riskScoreAlert);
-  const redLots    = rankedLots.filter(l => l.urgency === 'red');
-  const attention  = highAlerts.length + redLots.length;
+  // Determine status banner using saved thresholds
+  const redAlerts = alerts.filter(a => a.level === 'red');
+  const redLots = rankedLots.filter(l => l.urgency === 'red');
+  const amberAlerts = alerts.filter(a => a.level === 'amber');
+  const amberLots = rankedLots.filter(l => l.urgency === 'amber');
 
-  const banner = attention === 0
-    ? { level: 'green', icon: <CheckCircle size={16} aria-hidden="true" />, badge: 'Normal', text: T.status_all_normal }
-    : attention <= 2
-    ? { level: 'amber', icon: <AlertCircle size={16} aria-hidden="true" />, badge: 'Warning', text: t(T.status_attention, { n: attention }) }
-    : { level: 'red',   icon: <AlertTriangle size={16} aria-hidden="true" />, badge: 'Critical', text: t(T.status_attention, { n: attention }) };
+  // Check chambers exceeding max temperature deviation threshold
+  const tempDevChambers = chambers.filter(chamber => {
+    const chamberReadings = readings.filter(r => r.chamberId === chamber.id);
+    const last = chamberReadings[chamberReadings.length - 1];
+    return last && Math.abs(last.tempC - chamber.targetTempC) > settings.alertThresholds.tempDeviationAlert;
+  });
+
+  const additionalDevChambers = tempDevChambers.filter(
+    c => !redAlerts.some(a => a.chamberId === c.id) && !amberAlerts.some(a => a.chamberId === c.id)
+  );
+
+  const attention = redAlerts.length + redLots.length + amberAlerts.length + amberLots.length + additionalDevChambers.length;
+
+  const bannerLevel: 'green' | 'amber' | 'red' = (redAlerts.length > 0 || redLots.length > 0)
+    ? 'red'
+    : (attention > 0)
+    ? 'amber'
+    : 'green';
+
+  const banner = bannerLevel === 'green'
+    ? { level: 'green', icon: <CheckCircle size={16} aria-hidden="true" />, badge: T.status_normal || 'Normal', text: T.status_all_normal }
+    : bannerLevel === 'amber'
+    ? { level: 'amber', icon: <AlertCircle size={16} aria-hidden="true" />, badge: T.status_warning || 'Warning', text: t(T.status_attention, { n: attention }) }
+    : { level: 'red',   icon: <AlertTriangle size={16} aria-hidden="true" />, badge: T.status_critical || 'Critical', text: t(T.status_attention, { n: attention }) };
 
   const bannerStyle =
     banner.level === 'green'

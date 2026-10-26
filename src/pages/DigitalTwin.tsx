@@ -104,9 +104,10 @@ function FloorPlan({
 
 // ── Twin Chart ────────────────────────────────────────────────
 function TwinChart({ chamberId }: { chamberId: string }) {
-  const { chambers, readings, theme } = useStore();
+  const { chambers, readings, theme, settings } = useStore();
   const chamber = chambers.find(c => c.id === chamberId);
   const isDark = theme === 'dark';
+  const devThreshold = settings.alertThresholds.tempDeviationAlert;
 
   const chartData = useMemo(() => {
     if (!chamber) return [];
@@ -126,11 +127,11 @@ function TwinChart({ chamberId }: { chamberId: string }) {
         ts: `${day} ${month} ${hour}`,
         actual: parseFloat(r.tempC.toFixed(2)),
         expected: exp !== null ? parseFloat(exp.toFixed(2)) : null,
-        base: exp !== null ? parseFloat((exp - 1.5).toFixed(2)) : null,
-        band: exp !== null ? 3.0 : null,
+        base: exp !== null ? parseFloat((exp - devThreshold).toFixed(2)) : null,
+        band: exp !== null ? 2 * devThreshold : null,
       };
     });
-  }, [chamberId, readings, chamber]);
+  }, [chamberId, readings, chamber, devThreshold]);
 
   if (chartData.length === 0) {
     return <div className="text-sm text-gray-400 dark:text-gray-500 py-8 text-center">No data for this chamber.</div>;
@@ -180,7 +181,7 @@ function TwinChart({ chamberId }: { chamberId: string }) {
             color: isDark ? '#f8fafc' : '#0f172a',
           }}
           formatter={(v: any, name: string) => {
-            if (name === 'base' || name === 'band' || name === 'Expected ±1.5°C') return null;
+            if (name === 'base' || name === 'band' || name.startsWith('Expected ±')) return null;
             return [`${Number(v)?.toFixed ? Number(v).toFixed(2) : v}°C`, name];
           }}
         />
@@ -193,7 +194,7 @@ function TwinChart({ chamberId }: { chamberId: string }) {
             paddingBottom: '4px',
           }}
         />
-        {/* Invisible base area to float the tolerance band (expected - 1.5) */}
+        {/* Invisible base area to float the tolerance band (expected - devThreshold) */}
         <Area
           type="monotone"
           dataKey="base"
@@ -204,14 +205,14 @@ function TwinChart({ chamberId }: { chamberId: string }) {
           tooltipType="none"
           isAnimationActive={false}
         />
-        {/* Visible tolerance band area (width 3.0) */}
+        {/* Visible tolerance band area (width 2 * devThreshold) */}
         <Area
           type="monotone"
           dataKey="band"
           stackId="tolerance"
           stroke="none"
           fill="url(#devBand)"
-          name="Expected ±1.5°C"
+          name={`Expected ±${devThreshold}°C`}
           tooltipType="none"
           isAnimationActive={false}
         />
@@ -246,9 +247,9 @@ function FaultSimulator({ chamberId }: { chamberId: string }) {
   const [simulating, setSimulating] = useState(false);
 
   const faultOptions: { type: FaultType; label: string; icon: JSX.Element; description: string }[] = [
-    { type: 'blocked_coil',  label: T.fault_blocked_coil,  icon: <Wind size={16} />,      description: 'Gradual temperature rise; compressor works overtime' },
-    { type: 'door_left_open', label: T.fault_door_open,    icon: <Zap size={16} />,       description: 'Sudden heat spike, slow recovery' },
-    { type: 'short_cycling',  label: T.fault_short_cycling, icon: <RotateCcw size={16} />, description: 'Rapid compressor on/off, oscillating temperature' },
+    { type: 'blocked_coil',  label: T.fault_blocked_coil,  icon: <Wind size={16} />,      description: T.sim_blocked_coil_desc || 'Gradual temperature rise; compressor works overtime' },
+    { type: 'door_left_open', label: T.fault_door_open,    icon: <Zap size={16} />,       description: T.sim_door_open_desc || 'Sudden heat spike, slow recovery' },
+    { type: 'short_cycling',  label: T.fault_short_cycling, icon: <RotateCcw size={16} />, description: T.sim_short_cycling_desc || 'Rapid compressor on/off, oscillating temperature' },
   ];
 
   const handleSimulate = (type: FaultType) => {
@@ -264,13 +265,13 @@ function FaultSimulator({ chamberId }: { chamberId: string }) {
         <h3 className="font-semibold text-amber-900 dark:text-amber-200 text-sm">{T.simulate_fault} — {chamberId}</h3>
       </div>
       <p className="text-xs text-amber-700 dark:text-amber-400 mb-3">
-        Inject a fault pattern into this chamber's readings. The dashboard will react in real time.
+        {T.sim_explainer || "Inject a fault pattern into this chamber's readings. The dashboard will react in real time."}
       </p>
 
       {activeSimulation && activeSimulation.chamberId === chamberId && (
         <div className="mb-3 flex items-center justify-between bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-lg px-3 py-2 text-xs text-red-700 dark:text-red-300">
-          <span>⚠️ Simulation active: <strong>{activeSimulation.faultType}</strong></span>
-          <button onClick={clearSimulation} className="underline ml-2">Clear</button>
+          <span>⚠️ {T.simulation_active || 'Simulation active:'} <strong>{activeSimulation.faultType}</strong></span>
+          <button onClick={clearSimulation} className="underline ml-2">{T.clear || 'Clear'}</button>
         </div>
       )}
 
@@ -334,15 +335,14 @@ export default function DigitalTwin() {
       <div>
         <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">{T.nav_digital_twin}</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          Click a chamber to see the twin's prediction vs actual temperature.
-          Use "Simulate a Fault" to see alerts in real time.
+          {T.digital_twin_sub}
         </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Floor plan */}
         <div className="card">
-          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-4">Floor Plan</h2>
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-4">{T.floor_plan}</h2>
           <FloorPlan
             chambers={chambers}
             alerts={alertScores}
@@ -352,15 +352,15 @@ export default function DigitalTwin() {
           <div className="mt-4 flex flex-col gap-1.5 text-xs text-gray-600 dark:text-gray-300">
             <div className="flex items-center gap-2">
               <AlertTriangle size={14} className="text-red-500 shrink-0" aria-hidden="true" />
-              <span>High risk (≥60)</span>
+              <span>{T.high_risk_label}</span>
             </div>
             <div className="flex items-center gap-2">
               <AlertCircle size={14} className="text-amber-500 shrink-0" aria-hidden="true" />
-              <span>Medium risk (30–59)</span>
+              <span>{T.medium_risk_label}</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle size={14} className="text-green-500 shrink-0" aria-hidden="true" />
-              <span>Normal risk (&lt;30)</span>
+              <span>{T.normal_risk_label}</span>
             </div>
           </div>
         </div>
@@ -372,14 +372,16 @@ export default function DigitalTwin() {
               <div className="flex items-start justify-between">
                 <div>
                   <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{selectedChamberObj.name}</h2>
-                  <p className="text-xs text-gray-400 dark:text-gray-500">Target: {selectedChamberObj.targetTempC}°C · Ambient: {selectedChamberObj.ambientTempC}°C</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">
+                    {T.target_ambient.replace('{target}', selectedChamberObj.targetTempC.toString()).replace('{ambient}', selectedChamberObj.ambientTempC.toString())}
+                  </p>
                 </div>
                 <div className="flex items-center gap-3">
                   {selectedAlert && <RiskGauge score={selectedAlert.riskScore} />}
                   <button
                     type="button"
                     onClick={() => setSelectedChamber(null)}
-                    aria-label="Close chamber details"
+                    aria-label={T.close_chamber_details}
                     className="min-w-[44px] min-h-[44px] p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-cold-600"
                   >
                     <X size={16} aria-hidden="true" />
@@ -402,12 +404,12 @@ export default function DigitalTwin() {
                   )}
                   <div className="flex-1">
                     <div className="font-bold uppercase tracking-wider text-[10px] mb-0.5">
-                      {selectedAlert.level === 'red' ? 'Critical Equipment Risk' :
-                       selectedAlert.level === 'amber' ? 'Elevated Equipment Risk' :
-                       'Nominal Equipment Status'}
+                      {selectedAlert.level === 'red' ? (T.critical_equipment_risk || 'Critical Equipment Risk') :
+                       selectedAlert.level === 'amber' ? (T.elevated_equipment_risk || 'Elevated Equipment Risk') :
+                       (T.nominal_equipment_status || 'Nominal Equipment Status')}
                     </div>
-                    <div><strong>Reason:</strong> {selectedAlert.reason}</div>
-                    <div className="mt-0.5"><strong>Action:</strong> {selectedAlert.suggestedAction}</div>
+                    <div><strong>{T.reason_label || 'Reason:'}</strong> {selectedAlert.reason}</div>
+                    <div className="mt-0.5"><strong>{T.action_label || 'Action:'}</strong> {selectedAlert.suggestedAction}</div>
                   </div>
                 </div>
               )}
@@ -418,7 +420,7 @@ export default function DigitalTwin() {
                 </div>
                 <TwinChart chamberId={selectedChamber} />
                 <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                  Shaded band = ±1.5°C tolerance. Readings outside this band contribute to fault risk score.
+                  Shaded band = ±{settings.alertThresholds.tempDeviationAlert}°C tolerance. Readings outside this band contribute to fault risk score.
                   <br /><em>These are estimates from a simplified model. Always validate with real data.</em>
                 </div>
               </div>
@@ -428,7 +430,7 @@ export default function DigitalTwin() {
           ) : (
             <div className="card flex flex-col items-center justify-center py-16 gap-3 text-gray-400 dark:text-gray-500">
               <div className="text-4xl">🏭</div>
-              <p className="text-sm">Click a chamber on the floor plan to see its twin analysis.</p>
+              <p className="text-sm">{T.click_chamber_analysis || 'Click a chamber on the floor plan to see its twin analysis.'}</p>
             </div>
           )}
         </div>

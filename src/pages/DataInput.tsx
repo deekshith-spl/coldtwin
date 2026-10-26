@@ -189,6 +189,7 @@ function UploadTab() {
 
 // ── Manual Entry Tab ──────────────────────────────────────────
 function ManualTab() {
+  const T = useT();
   const { chambers, addReadings, addLot } = useStore();
   const [tab, setTab] = useState<'reading' | 'lot'>('reading');
   const [saved, setSaved] = useState(false);
@@ -246,7 +247,7 @@ function ManualTab() {
         {(['reading', 'lot'] as const).map(t => (
           <button key={t} onClick={() => setTab(t)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === t ? 'bg-cold-700 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
-            {t === 'reading' ? 'Daily Reading' : 'New Lot Arrival'}
+            {t === 'reading' ? T.daily_reading : T.new_lot_arrival}
           </button>
         ))}
       </div>
@@ -254,78 +255,78 @@ function ManualTab() {
       {tab === 'reading' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className={labelCls}>Chamber</label>
+            <label className={labelCls}>{T.chamber}</label>
             <select value={rForm.chamberId} onChange={e => setRForm(f => ({...f, chamberId: e.target.value}))} className={inputCls}>
               {chambers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
           <div>
-            <label className={labelCls}>Date & Time</label>
+            <label className={labelCls}>{T.date_time}</label>
             <input type="datetime-local" value={rForm.timestamp} onChange={e => setRForm(f => ({...f, timestamp: e.target.value}))} className={inputCls} />
           </div>
           <div>
-            <label className={labelCls}>Temperature (°C)</label>
+            <label className={labelCls}>{T.temperature_c}</label>
             <input type="number" step="0.1" placeholder="e.g. 4.2" value={rForm.tempC} onChange={e => setRForm(f => ({...f, tempC: e.target.value}))} className={inputCls} />
           </div>
           <div>
-            <label className={labelCls}>Humidity (%RH)</label>
+            <label className={labelCls}>{T.humidity_rh}</label>
             <input type="number" step="0.1" placeholder="e.g. 88" value={rForm.humidity} onChange={e => setRForm(f => ({...f, humidity: e.target.value}))} className={inputCls} />
           </div>
           <div>
-            <label className={labelCls}>Compressor Run Hours</label>
+            <label className={labelCls}>{T.compressor_run_hours}</label>
             <input type="number" step="0.1" min="0" max="1" placeholder="0–1 hrs" value={rForm.compressorRunHours} onChange={e => setRForm(f => ({...f, compressorRunHours: e.target.value}))} className={inputCls} />
           </div>
           <div>
-            <label className={labelCls}>Door Open Count</label>
+            <label className={labelCls}>{T.door_open_count}</label>
             <input type="number" min="0" placeholder="0" value={rForm.doorOpenCount} onChange={e => setRForm(f => ({...f, doorOpenCount: e.target.value}))} className={inputCls} />
           </div>
           <div className="sm:col-span-2">
             <button onClick={saveReading} className="btn-primary w-full py-3 text-base">
-              {saved ? '✓ Saved!' : '+ Add Reading'}
+              {saved ? T.saved_exclamation : T.add_reading}
             </button>
           </div>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className={labelCls}>Lot ID (optional)</label>
+            <label className={labelCls}>{T.lot_id_optional}</label>
             <input placeholder="Auto-generated if empty" value={lForm.id} onChange={e => setLForm(f => ({...f, id: e.target.value}))} className={inputCls} />
           </div>
           <div>
-            <label className={labelCls}>Produce</label>
+            <label className={labelCls}>{T.produce}</label>
             <select value={lForm.produce} onChange={e => setLForm(f => ({...f, produce: e.target.value}))} className={inputCls}>
               {['potato', 'apple', 'onion', 'chilli'].map(p => <option key={p} value={p} className="capitalize">{p}</option>)}
             </select>
           </div>
           <div>
-            <label className={labelCls}>Quantity (kg)</label>
+            <label className={labelCls}>{T.quantity_kg}</label>
             <input type="number" placeholder="e.g. 1000" value={lForm.quantityKg} onChange={e => setLForm(f => ({...f, quantityKg: e.target.value}))} className={inputCls} />
           </div>
           <div>
-            <label className={labelCls}>Arrival Date</label>
+            <label className={labelCls}>{T.arrival_date}</label>
             <input type="date" value={lForm.arrivalDate} onChange={e => setLForm(f => ({...f, arrivalDate: e.target.value}))} className={inputCls} />
           </div>
           <div>
-            <label className={labelCls}>Farmer ID</label>
+            <label className={labelCls}>{T.farmer_id}</label>
             <input placeholder="e.g. F1" value={lForm.farmerId} onChange={e => setLForm(f => ({...f, farmerId: e.target.value}))} className={inputCls} />
           </div>
           <div>
-            <label className={labelCls}>Farmer Name</label>
+            <label className={labelCls}>{T.farmer_name}</label>
             <input placeholder="e.g. Raju Naidu" value={lForm.farmerName} onChange={e => setLForm(f => ({...f, farmerName: e.target.value}))} className={inputCls} />
           </div>
           <div>
-            <label className={labelCls}>Chamber</label>
+            <label className={labelCls}>{T.chamber}</label>
             <select value={lForm.chamberId} onChange={e => setLForm(f => ({...f, chamberId: e.target.value}))} className={inputCls}>
               {chambers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
           <div>
-            <label className={labelCls}>Notes (optional)</label>
+            <label className={labelCls}>{T.notes_optional}</label>
             <input placeholder="Any notes..." value={lForm.notes} onChange={e => setLForm(f => ({...f, notes: e.target.value}))} className={inputCls} />
           </div>
           <div className="sm:col-span-2">
             <button onClick={saveLot} className="btn-primary w-full py-3 text-base">
-              {saved ? '✓ Saved!' : '+ Add Lot'}
+              {saved ? T.saved_exclamation : T.add_lot}
             </button>
           </div>
         </div>
@@ -340,7 +341,7 @@ function TemplatesTab() {
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-gray-600 dark:text-gray-400">
-        Download these CSV templates, fill them in, and upload them using the Upload tab.
+        {T.templates_tab_intro}
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="card flex flex-col gap-3">
@@ -348,13 +349,13 @@ function TemplatesTab() {
             <FileText size={20} className="text-cold-600 dark:text-cold-400" />
             <h3 className="font-medium text-gray-900 dark:text-gray-100">{T.readings_template}</h3>
           </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Daily temperature, humidity, compressor runtime, and door-open data.</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">{T.readings_template_desc}</p>
           <div className="text-xs text-gray-600 dark:text-gray-300 font-mono bg-gray-50 dark:bg-gray-800 p-2 rounded">
             {READINGS_HEADERS.join(', ')}
           </div>
           <button onClick={() => downloadCSV(READINGS_HEADERS, 'coldtwin_readings_template.csv')}
             className="btn-secondary flex items-center gap-2">
-            <Download size={14} /> Download Template
+            <Download size={14} /> {T.download_template}
           </button>
         </div>
         <div className="card flex flex-col gap-3">
@@ -362,13 +363,13 @@ function TemplatesTab() {
             <FileText size={20} className="text-cold-600 dark:text-cold-400" />
             <h3 className="font-medium text-gray-900 dark:text-gray-100">{T.lots_template}</h3>
           </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Lot arrivals with produce type, quantity, farmer, and chamber.</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">{T.lots_template_desc}</p>
           <div className="text-xs text-gray-600 dark:text-gray-300 font-mono bg-gray-50 dark:bg-gray-800 p-2 rounded">
             {LOTS_HEADERS.join(', ')}
           </div>
           <button onClick={() => downloadCSV(LOTS_HEADERS, 'coldtwin_lots_template.csv')}
             className="btn-secondary flex items-center gap-2">
-            <Download size={14} /> Download Template
+            <Download size={14} /> {T.download_template}
           </button>
         </div>
       </div>

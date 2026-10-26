@@ -24,9 +24,9 @@ function SellFirstPrint() {
   const { lots, readings, produceMeta, settings, role, currentFarmerId } = useStore();
   const T = useT();
 
-  // If farmer view, restrict to that farmer's lots only
-  const visibleLots = role === 'farmer' && currentFarmerId
-    ? lots.filter(l => l.farmerId === currentFarmerId)
+  // If farmer view, restrict to that farmer's lots only (never fall back to all lots)
+  const visibleLots = role === 'farmer'
+    ? (currentFarmerId ? lots.filter(l => l.farmerId === currentFarmerId) : [])
     : lots;
 
   const ranked = useMemo(
@@ -66,7 +66,7 @@ function SellFirstPrint() {
               )}
               <th className="text-left py-2 pr-4 text-xs font-bold text-gray-600 dark:text-gray-300">{T.quantity}</th>
               <th className="text-left py-2 pr-4 text-xs font-bold text-gray-600 dark:text-gray-300">{T.remaining_life}</th>
-              <th className="text-left py-2 text-xs font-bold text-gray-600 dark:text-gray-300">STATUS</th>
+              <th className="text-left py-2 text-xs font-bold text-gray-600 dark:text-gray-300">{T.status_label || "STATUS"}</th>
             </tr>
           </thead>
           <tbody>
@@ -104,10 +104,12 @@ function SellFirstPrint() {
 
 // ── Farmer Report ──────────────────────────────────────────────
 function FarmerReport({ farmerId }: { farmerId: string }) {
-  const { lots, readings, produceMeta, farmers, settings } = useStore();
+  const { lots, readings, produceMeta, farmers, settings, role, currentFarmerId } = useStore();
   const T = useT();
-  const farmer = farmers.find(f => f.id === farmerId) ?? { id: farmerId, name: farmerId };
-  const farmerLots = lots.filter(l => l.farmerId === farmerId);
+  // Privacy: If the active role is farmer, force farmerId to be strictly currentFarmerId
+  const effectiveId = role === 'farmer' ? (currentFarmerId ?? '') : farmerId;
+  const farmer = farmers.find(f => f.id === effectiveId) ?? { id: effectiveId, name: effectiveId };
+  const farmerLots = effectiveId ? lots.filter(l => l.farmerId === effectiveId) : [];
   const ranked = useMemo(
     () => rankLots(farmerLots, readings, produceMeta, settings.alertThresholds),
     [farmerLots, readings, produceMeta, settings.alertThresholds]
@@ -141,7 +143,7 @@ function FarmerReport({ farmerId }: { farmerId: string }) {
             </div>
             <div className="text-right">
               <div className="text-3xl font-black text-gray-900 dark:text-white">{item.remainingDays.toFixed(0)}</div>
-              <div className="text-xs text-gray-400">{T.days} remaining</div>
+              <div className="text-xs text-gray-400">{T.days_remaining || 'days remaining'}</div>
               <div className="text-xs text-gray-400 mt-0.5">({T.range} {item.lowDays}–{item.highDays})</div>
               <div className="mt-1"><UrgencyChip level={item.urgency} /></div>
             </div>
@@ -173,12 +175,12 @@ export default function Reports() {
 
   const isFarmerRole = role === 'farmer';
   const effectiveFarmerId = isFarmerRole
-    ? (currentFarmerId || farmers[0]?.id || '')
+    ? (currentFarmerId ?? '')
     : (selectedFarmer || (farmers[0]?.id ?? ''));
 
-  // If farmer role, strictly restrict lots to the current farmer
+  // If farmer role, strictly restrict lots to the current farmer (never all lots if unset)
   const relevantLots = isFarmerRole
-    ? lots.filter(l => l.farmerId === effectiveFarmerId)
+    ? (effectiveFarmerId ? lots.filter(l => l.farmerId === effectiveFarmerId) : [])
     : lots;
 
   const ranked = useMemo(
@@ -236,7 +238,7 @@ export default function Reports() {
         <div className="flex items-center gap-2 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 p-3.5 rounded-xl text-sm text-blue-900 dark:text-blue-200">
           <Shield size={18} className="shrink-0 text-blue-600 dark:text-blue-400" aria-hidden="true" />
           <span>
-            {T.role_farmer}: viewing private lots for <strong>{activeFarmerObj?.name || effectiveFarmerId}</strong>.
+            {T.role_farmer}: {T.viewing_private_lots_for || 'viewing private lots for'} <strong>{activeFarmerObj?.name || effectiveFarmerId}</strong>.
           </span>
         </div>
       )}
@@ -271,7 +273,7 @@ export default function Reports() {
           className="btn-secondary flex items-center gap-1.5"
         >
           <Download size={14} aria-hidden="true" />
-          <span>{isFarmerRole ? 'Export My Lots CSV' : T.export_rankings}</span>
+          <span>{isFarmerRole ? (T.export_my_lots || 'Export My Lots CSV') : T.export_rankings}</span>
         </button>
 
         {!isFarmerRole && (
@@ -318,7 +320,13 @@ export default function Reports() {
       {/* Report preview */}
       <div ref={printRef} className="border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden shadow-sm">
         {isFarmerRole ? (
-          <FarmerReport farmerId={effectiveFarmerId} />
+          effectiveFarmerId ? (
+            <FarmerReport farmerId={effectiveFarmerId} />
+          ) : (
+            <div className="p-12 text-center text-gray-400 bg-white dark:bg-gray-900">
+              {T.no_lots_for_farmer}
+            </div>
+          )
         ) : reportType === 'sell-first' ? (
           <SellFirstPrint />
         ) : selectedFarmer ? (

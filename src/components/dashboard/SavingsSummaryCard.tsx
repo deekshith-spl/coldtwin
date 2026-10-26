@@ -1,5 +1,6 @@
 import { TrendingUp, Info, AlertTriangle, Clock } from 'lucide-react';
-import { useT } from '@/i18n';
+import { useStore } from '@/store/useStore';
+import { useT, t } from '@/i18n';
 import type { RankedLot } from '@/types';
 
 interface SavingsSummaryCardProps {
@@ -9,8 +10,10 @@ interface SavingsSummaryCardProps {
 
 export function SavingsSummaryCard({ rankedLots, totalExtraCostINR }: SavingsSummaryCardProps) {
   const T = useT();
+  const { settings } = useStore();
   const redLots   = rankedLots.filter(l => l.urgency === 'red').length;
   const amberLots = rankedLots.filter(l => l.urgency === 'amber').length;
+  const amberDays = settings.alertThresholds.shelfLifeAmberDays;
 
   return (
     <div className="card">
@@ -30,14 +33,16 @@ export function SavingsSummaryCard({ rankedLots, totalExtraCostINR }: SavingsSum
             <AlertTriangle size={18} className="text-red-600 shrink-0" aria-hidden="true" />
             <div className="text-2xl font-bold text-red-700">{redLots}</div>
           </div>
-          <div className="text-xs text-red-700 font-medium mt-1">Urgent: Need immediate sale</div>
+          <div className="text-xs text-red-700 font-medium mt-1">{T.urgent_action_lots || 'Urgent: Need immediate sale'}</div>
         </div>
         <div className="bg-amber-50 border border-amber-100 rounded-lg p-3">
           <div className="flex items-center gap-2">
             <Clock size={18} className="text-amber-600 shrink-0" aria-hidden="true" />
             <div className="text-2xl font-bold text-amber-700">{amberLots}</div>
           </div>
-          <div className="text-xs text-amber-700 font-medium mt-1">Soon: Sell within 7 days</div>
+          <div className="text-xs text-amber-700 font-medium mt-1">
+            {t(T.sell_within_n_days || 'Soon: Sell within {n} days', { n: amberDays })}
+          </div>
         </div>
       </div>
 

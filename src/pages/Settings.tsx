@@ -92,9 +92,9 @@ export default function Settings() {
             <HelpCircle size={18} aria-hidden="true" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-gray-900 dark:text-white">ColdTwin Feature Walkthrough</h2>
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white">{T.walkthrough_title}</h2>
             <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-              Review how ColdTwin models chamber thermodynamics, how to load sensor data, and how to act on the Sell First list.
+              {T.tour_banner_desc}
             </p>
           </div>
         </div>
@@ -150,7 +150,7 @@ export default function Settings() {
       <div className="card">
         <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-1">{T.thresholds}</h2>
         <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-          Customize active triggers for equipment fault risks, residual alerts, and FEFO shelf-life urgency.
+          {T.thresholds_sub}
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
@@ -213,12 +213,12 @@ export default function Settings() {
             <thead className="bg-gray-50 dark:bg-gray-800/80 border-b border-gray-200 dark:border-gray-700">
               <tr>
                 <th className="text-left py-2.5 px-3 font-semibold text-gray-600 dark:text-gray-300">{T.produce}</th>
-                <th className="text-right py-2.5 px-3 font-semibold text-gray-600 dark:text-gray-300">Ideal Temp (°C)</th>
+                <th className="text-right py-2.5 px-3 font-semibold text-gray-600 dark:text-gray-300">{T.ideal_temp}</th>
                 <th className="text-right py-2.5 px-3 font-semibold text-gray-600 dark:text-gray-300">{T.min_safe_temp}</th>
-                <th className="text-right py-2.5 px-3 font-semibold text-gray-600 dark:text-gray-300">Ideal Humidity (%RH)</th>
-                <th className="text-right py-2.5 px-3 font-semibold text-gray-600 dark:text-gray-300">Base Life ({T.days})</th>
-                <th className="text-right py-2.5 px-3 font-semibold text-gray-600 dark:text-gray-300">Q10 Factor</th>
-                <th className="text-left py-2.5 px-3 font-semibold text-gray-600 dark:text-gray-300">Agronomic Notes</th>
+                <th className="text-right py-2.5 px-3 font-semibold text-gray-600 dark:text-gray-300">{T.ideal_humidity}</th>
+                <th className="text-right py-2.5 px-3 font-semibold text-gray-600 dark:text-gray-300">{T.base_life} ({T.days})</th>
+                <th className="text-right py-2.5 px-3 font-semibold text-gray-600 dark:text-gray-300">{T.q10_factor}</th>
+                <th className="text-left py-2.5 px-3 font-semibold text-gray-600 dark:text-gray-300">{T.agronomic_notes}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -238,7 +238,7 @@ export default function Settings() {
                     <input
                       type="number"
                       step="0.5"
-                      placeholder="None"
+                      placeholder={T.none}
                       value={p.minSafeTempC ?? ''}
                       onChange={e => handleProduceChange(idx, 'minSafeTempC', e.target.value)}
                       className="w-16 text-right border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded px-2 py-1 text-xs"

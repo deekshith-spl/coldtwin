@@ -9,6 +9,7 @@ import { ShelfLifeChart } from '@/components/ui/ShelfLifeChart';
 import type { RankedLot } from '@/types';
 
 function LotDrawer({ lot, onClose }: { lot: RankedLot; onClose: () => void }) {
+  const T = useT();
   const { readings, produceMeta } = useStore();
   const meta = produceMeta.find(m => m.produce === lot.lot.produce) ?? {
     produce: lot.lot.produce, idealTempC: 5, idealHumidity: 85,
@@ -35,7 +36,7 @@ function LotDrawer({ lot, onClose }: { lot: RankedLot; onClose: () => void }) {
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close lot details"
+            aria-label={T.close_lot_details || "Close lot details"}
             className="min-w-[44px] min-h-[44px] p-2 rounded-lg text-gray-500 hover:text-gray-800 hover:bg-gray-100 flex items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cold-600"
           >
             <X size={18} aria-hidden="true" />
@@ -46,11 +47,11 @@ function LotDrawer({ lot, onClose }: { lot: RankedLot; onClose: () => void }) {
           {/* Summary */}
           <div className="grid grid-cols-2 gap-3">
             {[
-              { label: 'Produce',       value: lot.lot.produce },
-              { label: 'Quantity',      value: `${lot.lot.quantityKg} kg` },
-              { label: 'Arrival Date',  value: lot.lot.arrivalDate },
-              { label: 'Farmer',        value: lot.lot.farmerName },
-              { label: 'Chamber',       value: lot.lot.chamberId },
+              { label: T.produce,       value: lot.lot.produce },
+              { label: T.quantity,      value: `${lot.lot.quantityKg} kg` },
+              { label: T.arrival_date,  value: lot.lot.arrivalDate },
+              { label: T.farmer,        value: lot.lot.farmerName },
+              { label: T.chamber,       value: lot.lot.chamberId },
               { label: 'Ideal Temp',    value: `${meta.idealTempC}°C` },
             ].map(item => (
               <div key={item.label} className="bg-gray-50 rounded-lg p-3">
@@ -63,17 +64,17 @@ function LotDrawer({ lot, onClose }: { lot: RankedLot; onClose: () => void }) {
           {/* Shelf life */}
           <div className="card">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-gray-900">Shelf Life Estimate</h3>
+              <h3 className="text-sm font-semibold text-gray-900">{T.shelf_life_estimate || 'Shelf Life Estimate'}</h3>
               <UrgencyChip level={lot.urgency} />
             </div>
             <div className="flex gap-4 mb-3">
               <div>
                 <div className="text-2xl font-bold text-gray-900">{lot.remainingDays.toFixed(1)}</div>
-                <div className="text-xs text-gray-400">days remaining (central)</div>
+                <div className="text-xs text-gray-400">{T.days_remaining_central || 'days remaining (central)'}</div>
               </div>
               <div>
                 <div className="text-lg font-semibold text-gray-600">{lot.lowDays} – {lot.highDays}</div>
-                <div className="text-xs text-gray-400">pessimistic – optimistic range</div>
+                <div className="text-xs text-gray-400">{T.pessimistic_optimistic_range || 'pessimistic – optimistic range'}</div>
               </div>
             </div>
             <ShelfLifeChart
@@ -83,24 +84,24 @@ function LotDrawer({ lot, onClose }: { lot: RankedLot; onClose: () => void }) {
               totalDays={meta.baseShelfLifeDays}
             />
             <div className="mt-3 text-xs text-gray-500 bg-gray-50 rounded p-2 leading-relaxed">
-              <strong>Why this estimate:</strong> {lot.explanation}
+              <strong>{T.why_this_estimate || 'Why this estimate:'}</strong> {lot.explanation}
             </div>
           </div>
 
           {/* Recent readings */}
           <div>
-            <h3 className="text-sm font-semibold text-gray-900 mb-2">Recent Chamber Readings</h3>
+            <h3 className="text-sm font-semibold text-gray-900 mb-2">{T.recent_chamber_readings || 'Recent Chamber Readings'}</h3>
             {chamberReadings.length === 0 ? (
-              <div className="text-xs text-gray-400">No readings for this chamber after arrival date.</div>
+              <div className="text-xs text-gray-400">{T.no_readings_after_arrival || 'No readings for this chamber after arrival date.'}</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="text-xs w-full">
                   <thead>
                     <tr className="text-gray-400 border-b">
-                      <th className="text-left py-1 pr-3">Time</th>
-                      <th className="text-right pr-3">Temp</th>
-                      <th className="text-right pr-3">Humidity</th>
-                      <th className="text-right">Door</th>
+                      <th className="text-left py-1 pr-3">{T.time || 'Time'}</th>
+                      <th className="text-right pr-3">{T.temp || 'Temp'}</th>
+                      <th className="text-right pr-3">{T.humidity || 'Humidity'}</th>
+                      <th className="text-right">{T.door || 'Door'}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -134,8 +135,8 @@ export default function Lots() {
   const [filterFarmer, setFilterFarmer]   = useState('');
   const [selectedLot, setSelectedLot]     = useState<RankedLot | null>(null);
 
-  const visibleLots = role === 'farmer' && currentFarmerId
-    ? lots.filter(l => l.farmerId === currentFarmerId)
+  const visibleLots = role === 'farmer'
+    ? (currentFarmerId ? lots.filter(l => l.farmerId === currentFarmerId) : [])
     : lots;
 
   const ranked = useMemo(
@@ -155,8 +156,8 @@ export default function Lots() {
     return matchSearch && matchProduce && matchChamber && matchFarmer;
   });
 
-  const produces = [...new Set(lots.map(l => l.produce))];
-  const chamberIds = [...new Set(lots.map(l => l.chamberId))];
+  const produces = [...new Set(visibleLots.map(l => l.produce))];
+  const chamberIds = [...new Set(visibleLots.map(l => l.chamberId))];
   const farmers = [...new Set(lots.map(l => ({ id: l.farmerId, name: l.farmerName })).map(f => JSON.stringify(f)))].map(s => JSON.parse(s));
 
   const selCls = 'border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-cold-500';
@@ -175,30 +176,30 @@ export default function Lots() {
         <div className="relative">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
-            placeholder="Search lots, farmers..."
+            placeholder={T.search_lots_farmers || "Search lots, farmers..."}
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="border border-gray-300 rounded-lg pl-8 pr-3 py-2 text-sm w-52 focus:outline-none focus:ring-1 focus:ring-cold-500"
           />
         </div>
         <select value={filterProduce} onChange={e => setFilterProduce(e.target.value)} className={selCls}>
-          <option value="">All Produce</option>
+          <option value="">{T.all_produce || "All Produce"}</option>
           {produces.map(p => <option key={p} value={p} className="capitalize">{p}</option>)}
         </select>
         <select value={filterChamber} onChange={e => setFilterChamber(e.target.value)} className={selCls}>
-          <option value="">All Chambers</option>
+          <option value="">{T.all_chambers || "All Chambers"}</option>
           {chamberIds.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
         {role !== 'farmer' && (
           <select value={filterFarmer} onChange={e => setFilterFarmer(e.target.value)} className={selCls}>
-            <option value="">All Farmers</option>
+            <option value="">{T.all_farmers || "All Farmers"}</option>
             {farmers.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
           </select>
         )}
         {(search || filterProduce || filterChamber || filterFarmer) && (
           <button onClick={() => { setSearch(''); setFilterProduce(''); setFilterChamber(''); setFilterFarmer(''); }}
             className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
-            <X size={14} /> Clear
+            <X size={14} /> {T.clear || "Clear"}
           </button>
         )}
       </div>
@@ -207,7 +208,7 @@ export default function Lots() {
       {filtered.length === 0 ? (
         <div className="card py-12 text-center text-gray-400">
           <div className="text-3xl mb-2">📦</div>
-          <div className="text-sm">No lots found. Load demo data or add lots via Data Input.</div>
+          <div className="text-sm">{T.no_lots_found || "No lots found. Load demo data or add lots via Data Input."}</div>
         </div>
       ) : (
         <div className="card p-0 overflow-hidden">
@@ -215,12 +216,12 @@ export default function Lots() {
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
                 <th className="text-left py-3 px-4 text-xs text-gray-500 font-semibold">#</th>
-                <th className="text-left py-3 px-4 text-xs text-gray-500 font-semibold">Lot / Produce</th>
-                <th className="text-left py-3 px-4 text-xs text-gray-500 font-semibold">Chamber</th>
-                {role !== 'farmer' && <th className="text-left py-3 px-4 text-xs text-gray-500 font-semibold">Farmer</th>}
-                <th className="text-right py-3 px-4 text-xs text-gray-500 font-semibold">Qty (kg)</th>
-                <th className="text-left py-3 px-4 text-xs text-gray-500 font-semibold">Remaining Life</th>
-                <th className="text-left py-3 px-4 text-xs text-gray-500 font-semibold">Status</th>
+                <th className="text-left py-3 px-4 text-xs text-gray-500 font-semibold">{T.lot_id} / {T.produce}</th>
+                <th className="text-left py-3 px-4 text-xs text-gray-500 font-semibold">{T.chamber}</th>
+                {role !== 'farmer' && <th className="text-left py-3 px-4 text-xs text-gray-500 font-semibold">{T.farmer}</th>}
+                <th className="text-right py-3 px-4 text-xs text-gray-500 font-semibold">{T.quantity}</th>
+                <th className="text-left py-3 px-4 text-xs text-gray-500 font-semibold">{T.remaining_life}</th>
+                <th className="text-left py-3 px-4 text-xs text-gray-500 font-semibold">{T.status_label || "Status"}</th>
                 <th className="py-3 px-4" />
               </tr>
             </thead>

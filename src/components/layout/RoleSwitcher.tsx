@@ -48,7 +48,7 @@ export function RoleSwitcher() {
         <div className="flex items-center gap-1.5 bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 px-2 py-1 rounded-lg text-xs transition-colors">
           <UserCheck size={14} className="text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true" />
           <select
-            aria-label="Select active farmer"
+            aria-label={T.select_active_farmer || "Select active farmer"}
             value={currentFarmerId || availableFarmers[0].id}
             onChange={e => setCurrentFarmer(e.target.value)}
             className="bg-transparent text-blue-900 dark:text-blue-200 font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-cold-600 rounded cursor-pointer"

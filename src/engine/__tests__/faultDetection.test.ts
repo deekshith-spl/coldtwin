@@ -5,7 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import { computeFaultAlert, injectFaultPattern, analyseSignals } from '../faultDetection';
 import { computeThermalPredictions } from '../thermalTwin';
-import type { Chamber, Reading } from '@/types';
+import type { Chamber, Reading, ThermalPrediction } from '@/types';
 
 const chamber: Chamber = {
   id: 'C2', name: 'Chamber 2',
@@ -88,20 +88,33 @@ describe('computeFaultAlert', () => {
   });
 
   it('respects custom alertThresholds for riskScore and tempDeviation', () => {
-    const readings = makeHealthyReadings(48);
-    const predictions = computeThermalPredictions(chamber, readings);
+    const readings = makeHealthyReadings(24).map(r => ({ ...r, doorOpenCount: 0 }));
+    // Predictions where actual temp is 2.5°C above expected (residual = 2.5)
+    const predictions: ThermalPrediction[] = readings.map(r => ({
+      chamberId: chamber.id,
+      timestamp: r.timestamp,
+      expectedTempC: r.tempC - 2.5,
+      residual: 2.5,
+    }));
 
-    // With a very low riskScoreAlert (e.g. 1), even minimal risk triggers amber/red
-    const alertLowThreshold = computeFaultAlert(chamber, readings, predictions, {
-      tempDeviationAlert: 0.05,
+    // With tempDeviationAlert = 1.0 (strict), the 2.5°C residual triggers amber/red
+    const strictAlert = computeFaultAlert(chamber, readings, predictions, {
+      tempDeviationAlert: 1.0,
       shelfLifeRedDays: 3,
       shelfLifeAmberDays: 7,
-      riskScoreAlert: 1,
+      riskScoreAlert: 60,
     });
+    expect(['amber', 'red']).toContain(strictAlert.level);
+    expect(strictAlert.reason.toLowerCase()).toContain('than the twin expects');
 
-    if (alertLowThreshold.riskScore >= 1) {
-      expect(['amber', 'red']).toContain(alertLowThreshold.level);
-    }
+    // With tempDeviationAlert = 5.0 (lenient), the 2.5°C residual does not exceed threshold
+    const lenientAlert = computeFaultAlert(chamber, readings, predictions, {
+      tempDeviationAlert: 5.0,
+      shelfLifeRedDays: 3,
+      shelfLifeAmberDays: 7,
+      riskScoreAlert: 60,
+    });
+    expect(lenientAlert.level).toBe('green');
   });
 });
 

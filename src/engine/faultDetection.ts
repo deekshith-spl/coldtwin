@@ -15,7 +15,7 @@
 // owner understands why the alert fired.
 // ============================================================
 
-import type { Chamber, Reading, ThermalPrediction, FaultAlert, AlertThresholds } from '@/types';
+import type { Chamber, Reading, ThermalPrediction, FaultAlert, AlertThresholds, UrgencyLevel } from '@/types';
 
 // EWMA smoothing factor (0 = no smoothing, 1 = no memory)
 const EWMA_ALPHA = 0.3;
@@ -93,7 +93,8 @@ export function analyseSignals(
   const tempDevLimit = alertThresholds?.tempDeviationAlert ?? RESIDUAL_ALERT_C;
 
   if (maxSmoothed > tempDevLimit) {
-    residualScore = Math.min(100, (maxSmoothed / tempDevLimit) * 50);
+    const excess = maxSmoothed / tempDevLimit;
+    residualScore = Math.min(100, Math.round(60 + (excess - 1) * 40));
     const sign = smoothed[smoothed.length - 1] > 0 ? 'higher' : 'lower';
     reasons.push(
       `Temperature is running ${maxSmoothed.toFixed(1)}°C ${sign} than the twin expects (threshold: ${tempDevLimit}°C) — ` +
@@ -139,8 +140,11 @@ export function analyseSignals(
 
   // ── Signal 3: Compressor duty cycle (use recent window: last 24-48 hours) ──
   let dutyCycleScore = 0;
-  // Focus on the most recent 48 hours to prevent historical normal readings from diluting recent faults
-  const recentDutyReadings = readings.slice(-48);
+  // Chronologically sort to ensure slice accurately captures the trailing window (last 24-48 hours)
+  const sortedByTime = [...readings].sort(
+    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+  );
+  const recentDutyReadings = sortedByTime.slice(-48);
   const totalHours = recentDutyReadings.reduce((s, r) => s + (r.intervalHours || 1), 0);
   const runHours   = recentDutyReadings.reduce((s, r) => s + r.compressorRunHours, 0);
   const dutyCycle  = totalHours > 0 ? runHours / totalHours : 0;
@@ -205,15 +209,31 @@ export function computeFaultAlert(
 
   const riskAlert = alertThresholds?.riskScoreAlert ?? 60;
   const warningAlert = Math.round(riskAlert / 2);
-  const level = riskScore >= riskAlert ? 'red' : riskScore >= warningAlert ? 'amber' : 'green';
+  let level: UrgencyLevel = riskScore >= riskAlert ? 'red' : riskScore >= warningAlert ? 'amber' : 'green';
+  if (signals.residualScore >= 60 && level === 'green') {
+    level = 'amber';
+  }
 
-  const reason = signals.reasons.length > 0
-    ? signals.reasons[0]
-    : `${chamber.name} is operating normally.`;
+  // Prioritize the primary reason and action corresponding to the dominant fault signal
+  let reason = `${chamber.name} is operating normally.`;
+  let suggestedAction = 'No action required. Continue monitoring.';
 
-  const suggestedAction = signals.actions.length > 0
-    ? signals.actions[0]
-    : 'No action required. Continue monitoring.';
+  const contributions = [
+    { score: 0.45 * signals.residualScore, idx: signals.reasons.findIndex(r => r.includes('Expected') || r.includes('deviation') || r.includes('warmer') || r.includes('cooler')) },
+    { score: 0.35 * signals.recoveryScore, idx: signals.reasons.findIndex(r => r.includes('door-open')) },
+    { score: 0.20 * signals.dutyCycleScore, idx: signals.reasons.findIndex(r => r.includes('duty cycle')) },
+  ].filter(c => c.idx !== -1);
+
+  contributions.sort((a, b) => b.score - a.score);
+
+  if (contributions.length > 0) {
+    const dominant = contributions[0];
+    reason = signals.reasons[dominant.idx];
+    suggestedAction = signals.actions[dominant.idx] || signals.actions[0] || suggestedAction;
+  } else if (signals.reasons.length > 0) {
+    reason = signals.reasons[0];
+    suggestedAction = signals.actions[0] || suggestedAction;
+  }
 
   return {
     chamberId: chamber.id,
@@ -236,27 +256,30 @@ export function computeFaultAlert(
 export function injectFaultPattern(
   readings: Reading[],
   faultType: 'blocked_coil' | 'door_left_open' | 'short_cycling',
-  startIndex: number = 0
+  startIndex?: number
 ): Reading[] {
-  const patched = readings.map((r, i) => ({ ...r }));
+  const patched = readings.map(r => ({ ...r }));
+  const actualStart = startIndex ?? Math.max(0, patched.length - 48);
 
-  for (let i = startIndex; i < Math.min(startIndex + 24, patched.length); i++) {
+  for (let i = actualStart; i < patched.length; i++) {
     const r = patched[i];
+    const offset = i - actualStart;
     switch (faultType) {
       case 'blocked_coil':
-        // Blocked coil: gradual temperature rise, compressor runs hard
-        r.tempC += 0.15 * (i - startIndex + 1);
-        r.compressorRunHours = Math.min(r.intervalHours || 1, r.compressorRunHours + 0.2);
+        // Blocked coil: gradual temperature rise, compressor works overtime
+        r.tempC += 0.15 * (offset + 1);
+        r.compressorRunHours = Math.min(r.intervalHours || 1, 0.95);
         break;
       case 'door_left_open':
-        // Door left open: sudden heat spike, slow recovery
-        if (i === startIndex) r.doorOpenCount += 3;
-        r.tempC += 0.8 * Math.exp(-0.2 * (i - startIndex));
+        // Door left open: heat spike, slow recovery
+        if (offset === 0) r.doorOpenCount += 3;
+        r.tempC += 2.0 * Math.exp(-0.08 * offset);
+        r.compressorRunHours = Math.min(r.intervalHours || 1, r.compressorRunHours + 0.3);
         break;
       case 'short_cycling':
-        // Short cycling: residual oscillates rapidly
-        r.tempC += (i % 2 === 0 ? 0.8 : -0.5);
-        r.compressorRunHours = i % 2 === 0 ? 0.1 : (r.intervalHours || 1) - 0.1;
+        // Short cycling: rapid compressor on/off, oscillating temperature
+        r.tempC += (offset % 2 === 0 ? 1.5 : -1.0);
+        r.compressorRunHours = offset % 2 === 0 ? 0.15 : (r.intervalHours || 1) - 0.15;
         break;
     }
   }
