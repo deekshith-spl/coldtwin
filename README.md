@@ -125,3 +125,4 @@ docs/         screenshots
 - K. Ramith
 - D. Rishwanth
 - G. Deekshith
+ Chaitanya Bharathi Institute of Technology(“Seva First Innovation Challenge”)
