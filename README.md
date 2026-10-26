@@ -1,6 +1,6 @@
 # ColdTwin: a software-first digital twin for small cold stores
 
-**Live demo:https://coldtwin.vercel.app/
+**Live demo:** https://coldtwin.vercel.app/
 
 
 > **Status: working prototype on demo data.** All numbers you see come from synthetic data and illustrative crop settings. Nothing here has been validated on a real cold store yet.
@@ -73,8 +73,7 @@ Go to **Data Input**, open the **Templates** tab, and download the templates, or
 - `sample_readings.csv`: 3 days of hourly readings for two chambers (the second shows a slow drift, like a blocked coil).
 - `sample_lots.csv`: four example lots.
 
-Upload the lots file and the readings file in the **Upload** tab. If you use a downloaded template, delete the comment row that starts with `#` before uploading.
-
+Upload the lots file and the readings file in the **Upload** tab. For a clean test, clear the demo data first (Settings), then upload the lots file followed by the readings file.
 ## Tech stack
 
 React, TypeScript, Vite, Tailwind CSS, Recharts, Zustand, PapaParse and SheetJS. The app runs entirely in the browser, and data is saved in the browser's local storage.
@@ -118,7 +117,11 @@ docs/         screenshots
 - Real login with server-enforced roles so farmers only see their own lots
 - Optional sensor gateway for automatic data collection
 - Voice and photo input (read a logbook photo, answer questions in Telugu)
-
 ## Team
-Team15
-K.RAM SRI VARUN(LEAD),K.RAMITH,D.RISHWANTH,G.DEEKSHITH
+
+**Team 15**
+
+- K. Ram Sri Varun 
+- K. Ramith
+- D. Rishwanth
+- G. Deekshith
