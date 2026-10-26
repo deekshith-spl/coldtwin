@@ -36,7 +36,8 @@ function UploadTab() {
 
     const parseRows = (rows: Record<string, string>[]) => {
       // Detect if readings or lots by columns
-      const isReadings = rows[0] && 'tempC' in rows[0] || 'chamberId' in rows[0];
+     const cols = rows[0] ? Object.keys(rows[0]) : [];
+    const isReadings = cols.includes('tempC') || cols.includes('timestamp');
       const msgs: typeof messages = [];
 
       if (isReadings) {
