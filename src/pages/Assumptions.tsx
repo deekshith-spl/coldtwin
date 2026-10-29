@@ -105,13 +105,14 @@ export default function Assumptions() {
             <h3 className="text-sm font-semibold text-gray-900">2. Fault Risk Scoring (0–100)</h3>
           </div>
           <p className="text-xs text-gray-600 leading-relaxed mb-3">
-            Composite statistical heuristic combining 3 weighted indicators:
+            Composite statistical heuristic combining 4 weighted indicators:
           </p>
           <div className="bg-gray-50 p-2.5 rounded font-mono text-xs text-gray-800 mb-3 border border-gray-100">
-            Risk = 0.45·ResidualScore + 0.35·RecoveryScore + 0.20·DutyCycleScore
+            Risk = 0.35·Residual + 0.30·LearnedAnomaly + 0.20·Recovery + 0.15·DutyCycle
           </div>
           <ul className="text-xs text-gray-500 space-y-1">
             <li>• <strong>Residual:</strong> EWMA (α=0.3) of (Actual - Expected)</li>
+            <li>• <strong>Learned Anomaly:</strong> Hourly median and MAD residual divergence from chamber's own baseline</li>
             <li>• <strong>Recovery:</strong> Hours taken to return to setpoint after doors open</li>
             <li>• <strong>Duty Cycle:</strong> Normal baseline 30%–75% runtime</li>
           </ul>
@@ -153,6 +154,30 @@ export default function Assumptions() {
             <li>• <strong>Tariff:</strong> Configurable (Current: ₹{settings.tariffINRperKwh}/kWh)</li>
             <li>• <strong>Cost:</strong> Extra kWh · Tariff</li>
           </ul>
+        </div>
+
+        {/* Learned Baseline Anomaly Detector */}
+        <div className="card md:col-span-2">
+          <div className="flex items-center gap-2 mb-2">
+            <Cpu className="text-cyan-600" size={16} />
+            <h3 className="text-sm font-semibold text-gray-900">5. Learned Baseline Anomaly Detection (Statistical Learning on Demo Data)</h3>
+          </div>
+          <p className="text-xs text-gray-600 leading-relaxed mb-2">
+            Unsupervised statistical learning of diurnal chamber behavior:
+          </p>
+          <div className="bg-gray-50 p-2.5 rounded font-mono text-xs text-gray-800 mb-3 border border-gray-100">
+            For each hour h ∈ [0..23]: Baseline_h = (Median(residuals_h), MAD(residuals_h))
+            <br />
+            Robust Z = |residual - Median_h| / (1.4826 · MAD_h)
+          </div>
+          <div className="text-xs text-gray-600 space-y-2">
+            <p>
+              • <strong>Methodology:</strong> Learns normal diurnal thermal behavior from the earlier part of each chamber&apos;s history, estimating typical residual offsets and dispersion (MAD) for every hour of the day.
+            </p>
+            <p className="p-2.5 bg-amber-50 dark:bg-amber-950/20 border-l-2 border-amber-500 rounded text-amber-800 dark:text-amber-300">
+              <strong>Demo Disclaimer &amp; No Accuracy Claims:</strong> This algorithm operates strictly as statistical learning on synthetic demo data for operator demonstration and decision-support modeling. No claims of operational accuracy, predictive precision, or real-world sensor validation are made. Real-world facilities require physical inspection, calibrated sensors, and empirical verification.
+            </p>
+          </div>
         </div>
       </div>
 

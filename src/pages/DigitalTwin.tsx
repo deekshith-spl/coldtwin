@@ -9,6 +9,7 @@ import { useStore } from '@/store/useStore';
 import { useT } from '@/i18n';
 import { computeThermalPredictions } from '@/engine/thermalTwin';
 import { computeFaultAlert } from '@/engine/faultDetection';
+import { learnChamberBaseline, computeLearnedBandPoint } from '@/engine/learnedBaseline';
 import { RiskGauge } from '@/components/ui/RiskGauge';
 import type { Chamber, FaultType } from '@/types';
 
@@ -111,13 +112,25 @@ function TwinChart({ chamberId }: { chamberId: string }) {
 
   const chartData = useMemo(() => {
     if (!chamber) return [];
-    const chamberReadings = readings
+    const allChamberReadings = readings
       .filter(r => r.chamberId === chamberId)
-      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
-      .slice(-72); // last 72 hrs
-    const predictions = computeThermalPredictions(chamber, chamberReadings);
-    return chamberReadings.map((r, i) => {
-      const exp = predictions[i]?.expectedTempC ?? null;
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    const allPredictions = computeThermalPredictions(chamber, allChamberReadings);
+    const chamberBaseline = learnChamberBaseline(chamber.id, allChamberReadings, allPredictions);
+
+    // Display slice: last 72 readings
+    const displayReadings = allChamberReadings.slice(-72);
+    const displayPredictions = allPredictions.slice(-72);
+
+    return displayReadings.map((r, i) => {
+      const pred = displayPredictions[i];
+      const exp = pred?.expectedTempC ?? null;
+      const bandPoint = computeLearnedBandPoint(
+        r.timestamp,
+        exp ?? r.tempC,
+        chamberBaseline,
+        devThreshold
+      );
       const d = new Date(r.timestamp);
       const month = d.toLocaleString('en-US', { month: 'short' });
       const day = d.getDate();
@@ -127,8 +140,8 @@ function TwinChart({ chamberId }: { chamberId: string }) {
         ts: `${day} ${month} ${hour}`,
         actual: parseFloat(r.tempC.toFixed(2)),
         expected: exp !== null ? parseFloat(exp.toFixed(2)) : null,
-        base: exp !== null ? parseFloat((exp - devThreshold).toFixed(2)) : null,
-        band: exp !== null ? 2 * devThreshold : null,
+        learnedBase: bandPoint.base,
+        learnedBand: bandPoint.band,
       };
     });
   }, [chamberId, readings, chamber, devThreshold]);
@@ -141,9 +154,9 @@ function TwinChart({ chamberId }: { chamberId: string }) {
     <ResponsiveContainer width="100%" height={290}>
       <ComposedChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: -14 }}>
         <defs>
-          <linearGradient id="devBand" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%"  stopColor={isDark ? '#fbbf24' : '#f59e0b'} stopOpacity={isDark ? 0.35 : 0.25} />
-            <stop offset="95%" stopColor={isDark ? '#fbbf24' : '#f59e0b'} stopOpacity={isDark ? 0.20 : 0.10} />
+          <linearGradient id="learnedBandGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%"  stopColor={isDark ? '#38bdf8' : '#0284c7'} stopOpacity={isDark ? 0.30 : 0.22} />
+            <stop offset="95%" stopColor={isDark ? '#38bdf8' : '#0284c7'} stopOpacity={isDark ? 0.12 : 0.08} />
           </linearGradient>
         </defs>
         <CartesianGrid
@@ -181,7 +194,7 @@ function TwinChart({ chamberId }: { chamberId: string }) {
             color: isDark ? '#f8fafc' : '#0f172a',
           }}
           formatter={(v: any, name: string) => {
-            if (name === 'base' || name === 'band' || name.startsWith('Expected ±')) return null;
+            if (name === 'learnedBase' || name === 'learnedBand' || name === 'Learned normal band') return null;
             return [`${Number(v)?.toFixed ? Number(v).toFixed(2) : v}°C`, name];
           }}
         />
@@ -194,25 +207,25 @@ function TwinChart({ chamberId }: { chamberId: string }) {
             paddingBottom: '4px',
           }}
         />
-        {/* Invisible base area to float the tolerance band (expected - devThreshold) */}
+        {/* Invisible base area to float the learned normal band */}
         <Area
           type="monotone"
-          dataKey="base"
-          stackId="tolerance"
+          dataKey="learnedBase"
+          stackId="learned"
           stroke="none"
           fill="none"
           legendType="none"
           tooltipType="none"
           isAnimationActive={false}
         />
-        {/* Visible tolerance band area (width 2 * devThreshold) */}
+        {/* Visible learned normal band area */}
         <Area
           type="monotone"
-          dataKey="band"
-          stackId="tolerance"
+          dataKey="learnedBand"
+          stackId="learned"
           stroke="none"
-          fill="url(#devBand)"
-          name={`Expected ±${devThreshold}°C`}
+          fill="url(#learnedBandGradient)"
+          name="Learned normal band"
           tooltipType="none"
           isAnimationActive={false}
         />
@@ -420,8 +433,8 @@ export default function DigitalTwin() {
                 </div>
                 <TwinChart chamberId={selectedChamber} />
                 <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                  Shaded band = ±{settings.alertThresholds.tempDeviationAlert}°C tolerance. Readings outside this band contribute to fault risk score.
-                  <br /><em>These are estimates from a simplified model. Always validate with real data.</em>
+                  Shaded band = learned normal baseline (hour-of-day median ± robust MAD). Readings outside this band contribute to the learned anomaly score.
+                  <br /><em>These are estimates from a simplified statistical model on demo data. Always validate with real data.</em>
                 </div>
               </div>
 

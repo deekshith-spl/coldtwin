@@ -16,6 +16,11 @@
 // ============================================================
 
 import type { Chamber, Reading, ThermalPrediction, FaultAlert, AlertThresholds, UrgencyLevel } from '@/types';
+import {
+  learnChamberBaseline,
+  computeLearnedAnomalyScore,
+  type ChamberBaseline,
+} from './learnedBaseline';
 
 // EWMA smoothing factor (0 = no smoothing, 1 = no memory)
 const EWMA_ALPHA = 0.3;
@@ -66,6 +71,7 @@ function rollingZScore(values: number[], window: number): number[] {
 
 interface FaultSignals {
   residualScore: number;      // 0–100 from EWMA residual
+  anomalyScore: number;       // 0–100 from learned baseline residual deviation
   recoveryScore: number;      // 0–100 from recovery time analysis
   dutyCycleScore: number;     // 0–100 from compressor duty
   smoothedResiduals: number[];
@@ -78,7 +84,8 @@ export function analyseSignals(
   chamber: Chamber,
   readings: Reading[],
   predictions: ThermalPrediction[],
-  alertThresholds?: AlertThresholds
+  alertThresholds?: AlertThresholds,
+  precomputedBaseline?: ChamberBaseline
 ): FaultSignals {
   const residuals = readings.map((r, i) => predictions[i]?.residual ?? 0);
   const smoothed = computeEwma(residuals, EWMA_ALPHA);
@@ -111,7 +118,17 @@ export function analyseSignals(
     actions.push('Check for refrigerant leaks or compressor short-cycling.');
   }
 
-  // ── Signal 2: Recovery time after door opens ─────────────
+  // ── Signal 2: Learned Baseline Anomaly ───────────────────
+  const baseline = precomputedBaseline ?? learnChamberBaseline(chamber.id, readings, predictions);
+  const learnedAnomaly = computeLearnedAnomalyScore(chamber, readings, predictions, baseline, alertThresholds);
+  const anomalyScore = learnedAnomaly.anomalyScore;
+
+  if (learnedAnomaly.reason && learnedAnomaly.anomalyScore >= 40) {
+    reasons.push(learnedAnomaly.reason);
+    actions.push(learnedAnomaly.suggestedAction ?? 'Inspect chamber seals and sensor calibration for this hour.');
+  }
+
+  // ── Signal 3: Recovery time after door opens ─────────────
   let recoveryScore = 0;
   let slowRecoveries = 0;
   const totalDoorEvents = readings.reduce((s, r) => s + r.doorOpenCount, 0);
@@ -138,7 +155,7 @@ export function analyseSignals(
     actions.push('Inspect door seal gasket and check compressor capacity.');
   }
 
-  // ── Signal 3: Compressor duty cycle (use recent window: last 24-48 hours) ──
+  // ── Signal 4: Compressor duty cycle (use recent window: last 24-48 hours) ──
   let dutyCycleScore = 0;
   // Chronologically sort to ensure slice accurately captures the trailing window (last 24-48 hours)
   const sortedByTime = [...readings].sort(
@@ -166,7 +183,7 @@ export function analyseSignals(
     actions.push('Verify compressor is starting normally and check run-hour sensors.');
   }
 
-  return { residualScore, recoveryScore, dutyCycleScore, smoothedResiduals: smoothed, zScores, reasons, actions };
+  return { residualScore, anomalyScore, recoveryScore, dutyCycleScore, smoothedResiduals: smoothed, zScores, reasons, actions };
 }
 
 /**
@@ -176,13 +193,14 @@ export function analyseSignals(
  * predictions, produce a FaultAlert with a 0–100 risk score and a
  * plain-English explanation of the top contributing factors.
  *
- * Weights: residual 45%, recovery time 35%, duty cycle 20%
+ * Weights: residual 35%, learned baseline anomaly 30%, recovery time 20%, duty cycle 15%
  */
 export function computeFaultAlert(
   chamber: Chamber,
   readings: Reading[],
   predictions: ThermalPrediction[],
-  alertThresholds?: AlertThresholds
+  alertThresholds?: AlertThresholds,
+  precomputedBaseline?: ChamberBaseline
 ): FaultAlert {
   if (readings.length < 3) {
     return {
@@ -196,21 +214,22 @@ export function computeFaultAlert(
     };
   }
 
-  const signals = analyseSignals(chamber, readings, predictions, alertThresholds);
+  const signals = analyseSignals(chamber, readings, predictions, alertThresholds, precomputedBaseline);
 
   const riskScore = Math.min(
     100,
     Math.round(
-      0.45 * signals.residualScore +
-      0.35 * signals.recoveryScore +
-      0.20 * signals.dutyCycleScore
+      0.35 * signals.residualScore +
+      0.30 * signals.anomalyScore +
+      0.20 * signals.recoveryScore +
+      0.15 * signals.dutyCycleScore
     )
   );
 
   const riskAlert = alertThresholds?.riskScoreAlert ?? 60;
   const warningAlert = Math.round(riskAlert / 2);
   let level: UrgencyLevel = riskScore >= riskAlert ? 'red' : riskScore >= warningAlert ? 'amber' : 'green';
-  if (signals.residualScore >= 60 && level === 'green') {
+  if ((signals.residualScore >= 60 || signals.anomalyScore >= 60) && level === 'green') {
     level = 'amber';
   }
 
@@ -219,10 +238,11 @@ export function computeFaultAlert(
   let suggestedAction = 'No action required. Continue monitoring.';
 
   const contributions = [
-    { score: 0.45 * signals.residualScore, idx: signals.reasons.findIndex(r => r.includes('Expected') || r.includes('deviation') || r.includes('warmer') || r.includes('cooler')) },
-    { score: 0.35 * signals.recoveryScore, idx: signals.reasons.findIndex(r => r.includes('door-open')) },
-    { score: 0.20 * signals.dutyCycleScore, idx: signals.reasons.findIndex(r => r.includes('duty cycle')) },
-  ].filter(c => c.idx !== -1);
+    { score: 0.35 * signals.residualScore, idx: signals.reasons.findIndex(r => r.includes('Expected') || r.includes('deviation') || r.includes('warmer') || r.includes('cooler') || r.includes('than the twin expects')) },
+    { score: 0.30 * signals.anomalyScore,  idx: signals.reasons.findIndex(r => r.includes('unlike its own usual pattern') || r.includes('usual pattern')) },
+    { score: 0.20 * signals.recoveryScore, idx: signals.reasons.findIndex(r => r.includes('door-open')) },
+    { score: 0.15 * signals.dutyCycleScore, idx: signals.reasons.findIndex(r => r.includes('duty cycle')) },
+  ].filter(c => c.idx !== -1 && c.score > 0);
 
   contributions.sort((a, b) => b.score - a.score);
 
