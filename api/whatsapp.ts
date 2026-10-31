@@ -1,6 +1,6 @@
 import { Redis } from '@upstash/redis';
 import twilio from 'twilio';
-import { handleCommand } from '../src/whatsapp/commands';
+import { handleCommand } from '../src/whatsapp/commands.js';
 
 const redis = Redis.fromEnv();
 

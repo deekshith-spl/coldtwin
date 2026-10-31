@@ -1,4 +1,4 @@
-import { rankLots } from '../engine/ranking';
+import { rankLots } from '../engine/ranking.js';
 
 type Snapshot = {
   chambers: any[];
