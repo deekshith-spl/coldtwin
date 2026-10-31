@@ -9,6 +9,7 @@ build/
 .env
 .env.*
 !.env.example
+.env.local
 
 # Debug logs
 *.log
@@ -33,3 +34,4 @@ venv/
 # Private keys
 *.pem
 *.key
+.vercel

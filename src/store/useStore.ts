@@ -268,3 +268,105 @@ export const useStore = create<StoreState>()(
     }
   )
 );
+
+// ── WhatsApp demo: synchronize website data ──
+
+async function syncColdTwinSnapshot() {
+  console.log('[ColdTwin] Sync function started');
+
+  const state = useStore.getState();
+
+  console.log('[ColdTwin] Snapshot counts:', {
+    chambers: state.chambers.length,
+    readings: state.readings.length,
+    lots: state.lots.length,
+    farmers: state.farmers.length,
+    produceMeta: state.produceMeta.length,
+  });
+
+  const syncKey = import.meta.env.VITE_SYNC_KEY;
+
+  console.log(
+    '[ColdTwin] VITE_SYNC_KEY configured:',
+    Boolean(syncKey)
+  );
+
+  if (!syncKey) {
+    console.error(
+      '[ColdTwin] VITE_SYNC_KEY is missing. Check your .env.local file.'
+    );
+    return;
+  }
+
+  const snapshot = {
+    chambers: state.chambers,
+    readings: state.readings.slice(
+      -500 * state.chambers.length
+    ),
+    lots: state.lots,
+    farmers: state.farmers,
+    produceMeta: state.produceMeta,
+    settings: state.settings,
+  };
+
+  try {
+    console.log('[ColdTwin] Sending snapshot to /api/sync');
+
+    const response = await fetch('/api/sync', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-sync-key': syncKey,
+      },
+      body: JSON.stringify(snapshot),
+    });
+
+    console.log(
+      '[ColdTwin] API response status:',
+      response.status
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+
+      console.error(
+        '[ColdTwin] Sync failed:',
+        response.status,
+        errorText
+      );
+
+      return;
+    }
+
+    const result = await response.json();
+
+    console.log(
+      '[ColdTwin] Synchronization successful:',
+      result
+    );
+
+  } catch (error) {
+    console.error(
+      '[ColdTwin] Sync request error:',
+      error
+    );
+  }
+}
+
+// ── Automatic synchronization after store changes ──
+
+let syncTimer: ReturnType<typeof setTimeout> | undefined;
+
+useStore.subscribe(() => {
+  if (syncTimer) {
+    clearTimeout(syncTimer);
+  }
+
+  syncTimer = setTimeout(() => {
+    void syncColdTwinSnapshot();
+  }, 2000);
+});
+
+// ── Send initial snapshot when the store loads ──
+
+void syncColdTwinSnapshot();
