@@ -97,7 +97,7 @@ export const en = {
 
   // Data Input
   quick_start_demo:   'Quick start with demo data',
-  demo_details:       '60 days, 4 chambers, 12 lots, 2 injected faults',
+  demo_details:       '60 days, 4 chambers, 14 lots, 2 injected faults',
   drop_csv_excel:     'Drop CSV or Excel file here',
   supports_csv_xlsx:  'Supports .csv and .xlsx · Columns auto-detected',
   tab_upload:         'Upload CSV / Excel',
