@@ -1,8 +1,9 @@
+
 // ============================================================
 // Demo Data Generator
 // ============================================================
 // Generates 60 days of realistic synthetic data for 4 chambers
-// and 12 lots (potato, apple, onion, chilli) across 4 farmers.
+// and 14 lots (potato, apple, onion, chilli) across 5 farmers.
 //
 // Two injected faults:
 //   1. Blocked coil in Chamber 2 starting day 30
@@ -52,18 +53,21 @@ export const DEFAULT_PRODUCE_META: ProduceMeta[] = [
 
 // ── Chambers ─────────────────────────────────────────────────
 export const DEMO_CHAMBERS: Chamber[] = [
-  { id: 'C1', name: 'Chamber 1 – Potato', targetTempC: 4,  ambientTempC: 32, compressorKW: 7.5 },
-  { id: 'C2', name: 'Chamber 2 – Apple',  targetTempC: 1,  ambientTempC: 32, compressorKW: 7.5 },
-  { id: 'C3', name: 'Chamber 3 – Mixed',  targetTempC: 5,  ambientTempC: 32, compressorKW: 5.5 },
-  { id: 'C4', name: 'Chamber 4 – Chilli', targetTempC: 8,  ambientTempC: 32, compressorKW: 5.5 },
+  { id: 'C1', name: 'Chamber 1 – Potato', targetTempC: 4, ambientTempC: 32, compressorKW: 7.5 },
+  { id: 'C2', name: 'Chamber 2 – Apple', targetTempC: 1, ambientTempC: 32, compressorKW: 7.5 },
+  { id: 'C3', name: 'Chamber 3 – Mixed', targetTempC: 5, ambientTempC: 32, compressorKW: 5.5 },
+  { id: 'C4', name: 'Chamber 4 – Chilli', targetTempC: 8, ambientTempC: 32, compressorKW: 5.5 },
 ];
 
 // ── Farmers ──────────────────────────────────────────────────
 export const DEMO_FARMERS: Farmer[] = [
-  { id: 'F1', name: 'Raju Naidu',     phone: '9876543210' },
-  { id: 'F2', name: 'Sunita Devi',    phone: '9865432101' },
-  { id: 'F3', name: 'Venkat Reddy',   phone: '9754321012' },
-  { id: 'F4', name: 'Priya Kumari',   phone: '9643210123' },
+  { id: 'F1', name: 'Raju Naidu', phone: '9876543210' },
+  { id: 'F2', name: 'Sunita Devi', phone: '9865432101' },
+  { id: 'F3', name: 'Venkat Reddy', phone: '9754321012' },
+  { id: 'F4', name: 'Priya Kumari', phone: '9643210123' },
+
+  // WhatsApp test farmer
+  { id: 'F5', name: 'WhatsApp Test Farmer', phone: '7989796955' },
 ];
 
 // ── Helper: Gaussian noise ────────────────────────────────────
@@ -88,21 +92,28 @@ function makeLots(baseDate: Date): Lot[] {
 
   return [
     // Chamber 1 – Potato
-    { id: 'L01', produce: 'potato', quantityKg: 5000, arrivalDate: d(50), farmerId: 'F1', farmerName: 'Raju Naidu',   chamberId: 'C1' },
-    { id: 'L02', produce: 'potato', quantityKg: 3000, arrivalDate: d(30), farmerId: 'F2', farmerName: 'Sunita Devi',  chamberId: 'C1' },
+    { id: 'L01', produce: 'potato', quantityKg: 5000, arrivalDate: d(50), farmerId: 'F1', farmerName: 'Raju Naidu', chamberId: 'C1' },
+    { id: 'L02', produce: 'potato', quantityKg: 3000, arrivalDate: d(30), farmerId: 'F2', farmerName: 'Sunita Devi', chamberId: 'C1' },
     { id: 'L03', produce: 'potato', quantityKg: 2500, arrivalDate: d(10), farmerId: 'F3', farmerName: 'Venkat Reddy', chamberId: 'C1' },
+
     // Chamber 2 – Apple
-    { id: 'L04', produce: 'apple',  quantityKg: 2000, arrivalDate: d(45), farmerId: 'F1', farmerName: 'Raju Naidu',   chamberId: 'C2' },
-    { id: 'L05', produce: 'apple',  quantityKg: 1500, arrivalDate: d(20), farmerId: 'F4', farmerName: 'Priya Kumari', chamberId: 'C2' },
-    { id: 'L06', produce: 'apple',  quantityKg: 1000, arrivalDate: d(5),  farmerId: 'F2', farmerName: 'Sunita Devi',  chamberId: 'C2' },
+    { id: 'L04', produce: 'apple', quantityKg: 2000, arrivalDate: d(45), farmerId: 'F1', farmerName: 'Raju Naidu', chamberId: 'C2' },
+    { id: 'L05', produce: 'apple', quantityKg: 1500, arrivalDate: d(20), farmerId: 'F4', farmerName: 'Priya Kumari', chamberId: 'C2' },
+    { id: 'L06', produce: 'apple', quantityKg: 1000, arrivalDate: d(5), farmerId: 'F2', farmerName: 'Sunita Devi', chamberId: 'C2' },
+
     // Chamber 3 – Mixed
-    { id: 'L07', produce: 'onion',  quantityKg: 8000, arrivalDate: d(55), farmerId: 'F3', farmerName: 'Venkat Reddy', chamberId: 'C3' },
-    { id: 'L08', produce: 'onion',  quantityKg: 4000, arrivalDate: d(25), farmerId: 'F4', farmerName: 'Priya Kumari', chamberId: 'C3' },
-    { id: 'L09', produce: 'potato', quantityKg: 1500, arrivalDate: d(15), farmerId: 'F1', farmerName: 'Raju Naidu',   chamberId: 'C3' },
+    { id: 'L07', produce: 'onion', quantityKg: 8000, arrivalDate: d(55), farmerId: 'F3', farmerName: 'Venkat Reddy', chamberId: 'C3' },
+    { id: 'L08', produce: 'onion', quantityKg: 4000, arrivalDate: d(25), farmerId: 'F4', farmerName: 'Priya Kumari', chamberId: 'C3' },
+    { id: 'L09', produce: 'potato', quantityKg: 1500, arrivalDate: d(15), farmerId: 'F1', farmerName: 'Raju Naidu', chamberId: 'C3' },
+
     // Chamber 4 – Chilli
-    { id: 'L10', produce: 'chilli', quantityKg: 500,  arrivalDate: d(18), farmerId: 'F2', farmerName: 'Sunita Devi',  chamberId: 'C4' },
-    { id: 'L11', produce: 'chilli', quantityKg: 800,  arrivalDate: d(8),  farmerId: 'F3', farmerName: 'Venkat Reddy', chamberId: 'C4' },
-    { id: 'L12', produce: 'chilli', quantityKg: 300,  arrivalDate: d(2),  farmerId: 'F4', farmerName: 'Priya Kumari', chamberId: 'C4' },
+    { id: 'L10', produce: 'chilli', quantityKg: 500, arrivalDate: d(18), farmerId: 'F2', farmerName: 'Sunita Devi', chamberId: 'C4' },
+    { id: 'L11', produce: 'chilli', quantityKg: 800, arrivalDate: d(8), farmerId: 'F3', farmerName: 'Venkat Reddy', chamberId: 'C4' },
+    { id: 'L12', produce: 'chilli', quantityKg: 300, arrivalDate: d(2), farmerId: 'F4', farmerName: 'Priya Kumari', chamberId: 'C4' },
+
+    // WhatsApp Test Farmer – sample produce
+    { id: 'L13', produce: 'potato', quantityKg: 1200, arrivalDate: d(12), farmerId: 'F5', farmerName: 'WhatsApp Test Farmer', chamberId: 'C1' },
+    { id: 'L14', produce: 'chilli', quantityKg: 400, arrivalDate: d(5), farmerId: 'F5', farmerName: 'WhatsApp Test Farmer', chamberId: 'C4' },
   ];
 }
 
@@ -123,28 +134,28 @@ function generateReadings(
 
       for (const chamber of chambers) {
         // Base temperature oscillates slightly around target
-        const diurnal = 0.3 * Math.sin((hour - 14) * Math.PI / 12); // afternoon warmer
-        let baseTemp  = chamber.targetTempC + diurnal;
-        let baseHum   = chamber.id === 'C4' ? 88 : chamber.id === 'C3' ? 72 : 90;
-        let compRun   = clamp(randn(0.55, 0.1), 0.3, 0.85); // hours per hour
-        let doorCount = Math.random() < 0.15 ? 1 : 0; // 15% chance of door open
+        const diurnal = 0.3 * Math.sin((hour - 14) * Math.PI / 12);
+        let baseTemp = chamber.targetTempC + diurnal;
+        let baseHum = chamber.id === 'C4' ? 88 : chamber.id === 'C3' ? 72 : 90;
+        let compRun = clamp(randn(0.55, 0.1), 0.3, 0.85);
+        let doorCount = Math.random() < 0.15 ? 1 : 0;
 
         // ── Inject blocked coil fault in C2 from day 30 ──
-        const dayNumber = days - 1 - day; // 0-indexed from start
+        const dayNumber = days - 1 - day;
         if (chamber.id === 'C2' && dayNumber >= 30) {
-          const severity = Math.min(1, (dayNumber - 30) / 20); // ramps up over 20 days
-          baseTemp  += severity * 2.5 + randn(0, 0.2);         // temp rises
-          compRun    = clamp(compRun + severity * 0.25, 0, 1);  // compressor works harder
+          const severity = Math.min(1, (dayNumber - 30) / 20);
+          baseTemp += severity * 2.5 + randn(0, 0.2);
+          compRun = clamp(compRun + severity * 0.25, 0, 1);
         }
 
         // ── Inject door-left-open in C3 on day 45 ──────────
         if (chamber.id === 'C3' && dayNumber === 45 && hour >= 9 && hour <= 11) {
-          doorCount  = 5; // multiple door opens
-          baseTemp  += 2.0 + randn(0, 0.3);
-          compRun    = clamp(compRun + 0.3, 0, 1);
+          doorCount = 5;
+          baseTemp += 2.0 + randn(0, 0.3);
+          compRun = clamp(compRun + 0.3, 0, 1);
         }
 
-        const tempC    = clamp(randn(baseTemp, 0.15), -5, 40);
+        const tempC = clamp(randn(baseTemp, 0.15), -5, 40);
         const humidity = clamp(randn(baseHum, 2), 50, 99);
 
         readings.push({
@@ -180,7 +191,7 @@ export interface DemoDataset {
  */
 export function generateDemoData(): DemoDataset {
   const baseDate = new Date();
-  baseDate.setHours(6, 0, 0, 0); // start at 6 AM today
+  baseDate.setHours(6, 0, 0, 0);
 
   return {
     chambers: DEMO_CHAMBERS,
