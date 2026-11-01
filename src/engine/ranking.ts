@@ -7,7 +7,7 @@
 // ============================================================
 
 import type { Lot, Reading, ProduceMeta, RankedLot, ShelfLifeEstimate, AlertThresholds } from '@/types';
-import { computeShelfLifeEstimate } from './shelfLife';
+import { computeShelfLifeEstimate } from './shelfLife.js';
 
 /**
  * rankLots
